@@ -6,7 +6,9 @@ An independent Chrome extension for your own Amplitude **Testing Assignments** a
 
 ## Video
 
-[Watch the short walkthrough](docs/demo.mp4) — recorded with fictional data.
+https://github.com/user-attachments/assets/428f4f84-04e1-45dc-816d-6130aca37c52
+
+Recorded with fictional data.
 
 ## What it does
 
