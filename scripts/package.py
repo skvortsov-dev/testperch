@@ -23,7 +23,7 @@ if args.tag and args.tag != f'v{version}':
 
 # An explicit list keeps credentials, Git history, build files, and dependencies out.
 files = [ROOT / name for name in ('manifest.json', 'index.html', 'style.css', 'LICENSE')]
-files += list(ROOT.glob('*.md'))
+files += [ROOT / name for name in ('README.md', 'PRIVACY.md', 'CHANGELOG.md')]
 for folder in ('src', 'assets', 'docs'):
     files += [p for p in (ROOT / folder).rglob('*') if p.is_file() and not p.name.startswith('.')]
 for icon in manifest['icons'].values():

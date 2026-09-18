@@ -24,13 +24,10 @@ Subscribe through **Watch → Custom → Releases**. Future releases include ver
 
 ### Scope and limits
 
+- Archived configurations are excluded.
 - Matches the current Amplitude account's exact email in individual Testing assignments; does not match device IDs or cohorts.
 - Requires existing permission to edit the selected configuration. Other participants and rollout settings are preserved.
 - Leaving Testing does not exclude you from a 100% rollout.
 - Disconnecting TestPerch does not sign out of Amplitude or remove saved assignments.
 - Keep the popup open while saving. Conflicts are surfaced without automatic retries; writes are checked with a fresh read.
 - Uses internal Amplitude session endpoints. Not affiliated with or endorsed by Amplitude; compatibility can change. Chrome Web Store publication is on hold while integration and legal questions are clarified.
-
-### Validation
-
-27 automated tests cover identity checks, assignment preservation, custom variants, conflicts, read-back verification, session discovery, and persistent disconnect preferences. The search/join/leave flow and theme switching were checked with fictional demo data. An earlier authorized Dev test confirmed adding the current user and removing that assignment with an independent Amplitude read-back. Staging was checked read-only. EU hosting, multiple organizations, and competing live edits remain untested.

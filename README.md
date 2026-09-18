@@ -26,7 +26,7 @@ Recorded with fictional data.
 3. Open TestPerch. It connects automatically to an open, signed-in Amplitude Experiment tab. If needed, use **Sign in to Amplitude**, finish signing in, and reopen TestPerch.
 4. Choose a project. **My tests** shows your assignments; **Find tests** searches existing experiments and flags in the selected project. Choose an available variant → **Add me to test**. For an existing assignment, use **Apply variant** to switch groups or **Leave test** to remove yourself.
 
-Keep the popup open while saving. Leaving Testing restores normal targeting; it does not exclude you from a 100% rollout. Matching uses your exact Amplitude account email, not device IDs or cohort membership. The account must have permission to edit the configuration.
+Keep the popup open while saving. Leaving Testing restores normal targeting; it does not exclude you from a 100% rollout. Matching uses your exact Amplitude account email, not device IDs or cohort membership. Archived configurations are excluded. The account must have permission to edit the configuration.
 
 ## Disconnect / switch account
 
@@ -46,4 +46,4 @@ Assignment data refreshes every 30 seconds while the popup is visible, pausing d
 
 No telemetry, backend, or stored credentials. Uses the existing browser session and internal Amplitude endpoints, which can change without notice. Not affiliated with or endorsed by Amplitude.
 
-[Privacy](PRIVACY.md) · [Integration review](API-DECISION.md) · [Legal notes](LEGAL-NOTES.md) · [MIT license](LICENSE)
+[Privacy](PRIVACY.md) · [Changelog](CHANGELOG.md) · [MIT license](LICENSE)
