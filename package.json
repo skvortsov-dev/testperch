@@ -1,0 +1,11 @@
+{
+  "name": "testperch",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "package": "python3 scripts/package.py"
+  },
+  "description": "Manage your own experiment and feature flag testing assignments in Amplitude."
+}

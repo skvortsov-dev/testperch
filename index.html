@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TestPerch</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">
+            <img src="assets/icon.svg" width="36" height="36" alt="" />
+          </span>
+          <span
+            >TestPerch <span class="beta">0.0.1</span
+            ><small>Experiment & flag testing for Amplitude</small></span
+          >
+        </div>
+        <div class="header-actions">
+          <button
+            id="disconnect"
+            class="theme-button disconnect-button"
+            hidden
+            aria-label="Disconnect account"
+            title="Disconnect from TestPerch (keeps Amplitude signed in)"
+          >
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 4H4v16h5M13 8l4 4-4 4M8 12h12" />
+            </svg></button
+          ><button
+            id="theme"
+            class="theme-button"
+            aria-label="Theme: system. Click to switch."
+            title="Theme: system. Click to switch."
+          >
+            ◐
+          </button>
+        </div>
+      </header>
+
+      <div id="demo-banner" class="demo-banner" hidden>
+        <span>Demo workspace · changes stay here</span
+        ><button id="exit-demo">Exit demo</button>
+      </div>
+
+      <section id="welcome" class="welcome">
+        <span class="eyebrow">TESTING FOR AMPLITUDE</span>
+        <h1>A little control<br />over your experiments.</h1>
+        <p>
+          Find your test assignments, try a different variant,<br />or return to
+          the regular experience.
+        </p>
+        <label for="tab">Amplitude tab</label>
+        <select id="tab">
+          <option>Looking for an open tab…</option>
+        </select>
+        <button id="connect" class="primary connect-button">
+          Check connection <span aria-hidden="true">↗</span>
+        </button>
+        <div class="welcome-actions">
+          <button id="open" class="quiet">Sign in to Amplitude ↗</button
+          ><button id="demo" class="quiet blue">Try the demo →</button>
+        </div>
+        <p class="sign-in-note" id="sign-in-note">
+          After signing in, reopen TestPerch to sync your tests.
+        </p>
+        <div class="connection-note" id="connection-note">
+          <span class="dot"></span>Already signed in? We connect automatically.
+        </div>
+      </section>
+
+      <section id="dashboard" hidden>
+        <div class="workspace">
+          <div class="identity">
+            <span id="avatar" class="avatar"></span>
+            <div class="identity-text">
+              <strong id="account-email"></strong
+              ><span id="organization"></span>
+            </div>
+            <span
+              class="connected-dot"
+              title="Connected"
+              aria-label="Connected"
+            ></span>
+          </div>
+          <label class="eyebrow" for="project">PROJECT</label>
+          <select id="project"></select>
+        </div>
+        <div class="catalog-head">
+          <div class="tabs" role="tablist" aria-label="Assignments">
+            <button
+              id="mine"
+              role="tab"
+              aria-selected="true"
+              aria-controls="catalog"
+            >
+              My tests <span id="mine-count">0</span>
+            </button>
+            <button
+              id="explore"
+              role="tab"
+              aria-selected="false"
+              aria-controls="catalog"
+            >
+              Find tests
+            </button>
+          </div>
+          <button
+            id="refresh"
+            class="refresh"
+            aria-label="Refresh assignments"
+            title="Refresh assignments"
+          >
+            ↻
+          </button>
+        </div>
+        <div class="search-tools">
+          <div class="search-field">
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+            >
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m16 16 4 4" /></svg
+            ><input
+              id="search"
+              type="search"
+              placeholder="Search by name or key…"
+              aria-label="Search by name or key"
+            />
+          </div>
+          <select id="kind" aria-label="Configuration type">
+            <option value="all">All types</option>
+            <option value="experiment">Experiments</option>
+            <option value="flag">Feature flags</option>
+          </select>
+        </div>
+        <div class="list-caption">
+          <span id="list-description">Your manual test assignments</span
+          ><span id="result-count"></span>
+        </div>
+        <div id="catalog" role="tabpanel" aria-labelledby="mine" tabindex="0">
+          <div id="results"></div>
+          <div id="empty" class="empty" hidden>
+            <span class="empty-symbol" aria-hidden="true">◇</span>
+            <h2 id="empty-title"></h2>
+            <p id="empty-description"></p>
+            <button id="browse" class="secondary" hidden>
+              Find a test to join
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div
+        id="status"
+        class="status"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+      <div id="errors" class="error" role="alert" hidden></div>
+      <footer>
+        <details>
+          <summary>How testing works</summary>
+          <p>
+            Assigning a variant changes only your Testing assignment. Leaving a
+            test restores normal targeting, including any 100% rollout. Keep
+            this popup open while saving.
+          </p>
+        </details>
+        <span
+          id="sync-state"
+          title="Refreshes every 30 seconds while open. Editing pauses updates."
+          >Independent tool for Amplitude</span
+        >
+      </footer>
+    </main>
+
+    <template id="card-template">
+      <article class="test-card">
+        <div class="card-heading">
+          <span class="type-icon" aria-hidden="true"></span>
+          <div class="card-info">
+            <h2 class="card-title"></h2>
+            <p class="card-meta"></p>
+          </div>
+        </div>
+        <form class="variant-editor">
+          <div class="variant-row">
+            <select class="variant-select" required></select>
+            <button type="button" class="leave-button danger">
+              Leave test
+            </button>
+          </div>
+          <div class="editor-actions" hidden>
+            <span class="editor-note">Only your assignment</span>
+            <button type="button" class="cancel-button quiet">Cancel</button>
+            <button type="submit" class="save-button success">
+              Apply variant
+            </button>
+          </div>
+        </form>
+      </article>
+    </template>
+    <script type="module" src="src/popup/controller.js"></script>
+  </body>
+</html>
