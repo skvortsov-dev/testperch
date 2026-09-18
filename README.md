@@ -42,22 +42,6 @@ Subscribe with **Watch → Custom → Releases** ([GitHub instructions](https://
 
 Assignment data refreshes every 30 seconds while the popup is visible, pausing during edits. Reopening loads fresh data. This is separate from installing a new extension version.
 
-## Development
-
-No runtime dependencies or build step. Use Node.js 20+ for tests:
-
-```sh
-npm test
-python3 -m http.server 8766 --bind 127.0.0.1
-```
-
-Open `http://127.0.0.1:8766/` and choose **Try the demo**. Real account access works in the installed extension.
-
-- `src/amplitude/` — session connector and guarded assignment changes.
-- `src/popup/` — UI, connection, filters, menus, and preferences.
-- `assets/` — shared bird icon and Chrome PNG sizes.
-- `tests/` — mocked connector and UI-logic tests.
-
 ## Making a release
 
 1. Set the same new version in `manifest.json` and `package.json`; update the version in the interface and this README.
