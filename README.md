@@ -36,19 +36,11 @@ Use the **exit icon** next to the theme button to disconnect from TestPerch. Thi
 
 **Current version: 0.0.1.** Releases are distributed through **GitHub Releases** while legal and integration questions are being clarified. Chrome Web Store publication is on hold; this does not establish legal clearance for GitHub distribution.
 
-Each published release will include an installable **`testperch-v<version>.zip`** and a SHA-256 checksum. The included GitHub Actions workflow runs tests, checks the version against the release tag, then attaches these assets.
+Each published release will include an installable **`testperch-v<version>.zip`** and a SHA-256 checksum.
 
 Subscribe with **Watch → Custom → Releases** ([GitHub instructions](https://docs.github.com/en/subscriptions-and-notifications/get-started/configuring-notifications)). Download the latest release into the same installation folder, then click **Reload** at `chrome://extensions`. Git users can pull changes instead. Unpacked installations do not update automatically.
 
 Assignment data refreshes every 30 seconds while the popup is visible, pausing during edits. Reopening loads fresh data. This is separate from installing a new extension version.
-
-## Making a release
-
-1. Set the same new version in `manifest.json` and `package.json`; update the version in the interface and this README.
-2. Run `npm test` and `npm run package`. The ZIP appears in `dist/`.
-3. Commit, push, and publish a GitHub Release with the matching tag, e.g. `v0.0.1`. The workflow attaches the ZIP and checksum automatically. Publication remains a deliberate maintainer action.
-
-The local package contains the extension, documentation, and walkthrough video. It excludes Git history, tests, dependencies, and credentials. Node.js and Python are needed only to develop/package it, not to install the ZIP.
 
 ## Privacy & status
 
