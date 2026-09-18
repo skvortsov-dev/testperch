@@ -4,12 +4,6 @@
 
 An independent Chrome extension for your own Amplitude **Testing Assignments** and feature flag **Testing**. Find your assignments, choose any available variant, or leave a test. Light and dark themes included.
 
-## Video
-
-https://github.com/user-attachments/assets/428f4f84-04e1-45dc-816d-6130aca37c52
-
-Recorded with fictional data.
-
 ## What it does
 
 - Connects to your existing Amplitude session without an API key.
@@ -18,6 +12,12 @@ Recorded with fictional data.
 - Adds you to a test group, switches variants, or removes only your assignment.
 - Supports custom variants and refreshes while the popup is open.
 - Includes **Try the demo** with fictional data; changes stay local.
+
+## Video
+
+https://github.com/user-attachments/assets/428f4f84-04e1-45dc-816d-6130aca37c52
+
+Recorded with fictional data.
 
 ## Install
 
