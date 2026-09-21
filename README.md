@@ -44,7 +44,7 @@ Use the **exit icon** next to the theme button to disconnect from TestPerch. Thi
 
 ## Updates
 
-**Current version: 0.0.2.** Install from **GitHub Releases** for now. Chrome Web Store publication is being prepared; there is no Store listing yet.
+**Current version: 0.0.2.** Install from **GitHub Releases** for now. Version 0.0.2 has been submitted to Chrome Web Store and is awaiting review. It is set to publish automatically after approval; Store installation is not available yet.
 
 Once available, Store installations will receive approved updates automatically through Chrome. Delivery is not instant, and unpacked installations will need to be replaced by the Store version to use Store updates.
 

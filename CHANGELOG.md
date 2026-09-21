@@ -11,7 +11,7 @@
 - Try email aliases and device IDs with fictional demo data.
 - Add contribution guidelines and clarify manual versus future Chrome Web Store updates.
 
-Chrome Web Store publication is being prepared. Version 0.0.2 is available as an unpacked extension through GitHub Releases. Existing Amplitude permissions are required; archived configurations and cohort-based assignments remain excluded.
+Version 0.0.2 has been submitted to Chrome Web Store and is awaiting review, with automatic publication after approval. It is available now as an unpacked extension through GitHub Releases. Existing Amplitude permissions are required; archived configurations and cohort-based assignments remain excluded.
 
 ## 0.0.1 — First public release
 
