@@ -2,7 +2,7 @@
 <h1 align="center">TestPerch</h1>
 <p align="center">Experiment & flag testing for Amplitude.</p>
 
-An independent Chrome extension for Amplitude **Testing Assignments** and feature flag **Testing**. Find assignments for your account or selected email/user/device IDs, choose a variant, or leave a test. Light and dark themes included.
+An independent Chrome extension for QA engineers, developers, and product managers working with Amplitude **Testing Assignments** and feature flag **Testing**. Find assignments for your account or selected email/user/device IDs, choose a variant, or leave a test. Light and dark themes included.
 
 ## What it does
 
