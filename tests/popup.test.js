@@ -77,16 +77,16 @@ test(
   },
 );
 test(
-  "full popup: invalid input hides old actions; empty selection never falls back to actor",
+  "full popup: invalid additional input preserves own account and existing results",
   options,
   async (t) => {
     const p = await popup(t);
     await p.custom("bad id");
     assert.equal(p.$("#target-error").hidden, false);
     assert.equal(p.$("#target-input").getAttribute("aria-invalid"), "true");
-    assert.equal(p.window.document.querySelectorAll(".test-card").length, 0);
+    assert.equal(p.window.document.querySelectorAll(".test-card").length, 2);
     await p.click("#target-cancel");
-    assert.equal(p.$("#mine-count").textContent, "0");
+    assert.equal(p.$("#mine-count").textContent, "2");
     await p.custom(" , ;\n ");
     assert.equal(p.$("#target-error").hidden, false);
     assert.equal(p.backend.writes.length, 0);
@@ -98,7 +98,8 @@ test(
   async (t) => {
     const p = await popup(t);
     const ids = Array.from({ length: 20 }, (_, i) => `qa-device-${i}`);
-    await p.custom(ids.join("\n"));
+    await p.custom(ids[0]);
+    await p.custom(ids.slice(1).join("\n"));
     assert.equal(p.$("#mine-count").textContent, "0");
     assert.match(p.$("#empty-title").textContent, /No assignments/);
     assert.deepEqual(p.backend.session.connection.targets, ids);
@@ -189,6 +190,7 @@ test(
     const p = await popup(t);
     await p.custom(alias);
     p.backend.flags[1].inclusionsMap.on.push(alias);
+    await p.click("#target-cancel");
     await p.intervals.get(30000)();
     assert.equal(p.$("#mine-count").textContent, "2");
     await p.click("#target-add");
@@ -274,11 +276,14 @@ test(
   async (t) => {
     const p = await popup(t);
     assert.equal(p.$("#target-include-me").checked, true);
+    assert.equal(p.$("#target-picker").hidden, true);
     await p.click("#target-add");
     assert.equal(p.$("#target-add").getAttribute("aria-expanded"), "true");
-    assert.equal(p.$("#target-include-me").disabled, true);
+    assert.equal(p.$("#target-picker").hidden, true);
+    assert.equal(p.$("#target-include-me").disabled, false);
     p.$("#target-input").value = `${alias},${device}`;
     await p.click("#target-apply");
+    assert.equal(p.$("#target-picker").hidden, false);
     assert.deepEqual(p.backend.session.connection.targets, [
       actor,
       alias,
@@ -294,28 +299,25 @@ test(
 );
 
 test(
-  "full popup: empty selection persists across reopen and does not scan or silently use actor",
+  "full popup: removing last additional ID restores own account and hides toggle across reopen",
   options,
   async (t) => {
     const backend = fixture();
     let p = await popup(t, backend);
-    const scans = () =>
-      backend.requests.filter((r) => r.query.includes("flagConfigsInEnv"))
-        .length;
-    const before = scans();
-    await p.click("#target-include-me");
-    assert.equal(scans(), before);
-    assert.deepEqual(backend.session.connection.targets, []);
-    assert.match(p.$("#empty-title").textContent, /Choose who to test/);
-    await p.intervals.get(30000)();
-    assert.equal(scans(), before);
-    await p.click("#explore");
-    assert.equal(p.window.document.querySelectorAll(".test-card").length, 0);
+    await p.custom(alias);
+    assert.equal(p.$("#target-picker").hidden, false);
+    assert.equal(p.$("#target-include-me").checked, false);
+    await p.click(".target-chip button");
+    assert.deepEqual(backend.session.connection.targets, [actor]);
+    assert.equal(p.$("#target-picker").hidden, true);
+    assert.equal(p.$("#target-include-me").checked, true);
+    assert.ok(p.row("Checkout", actor));
     await p.close();
     p = await popup(t, backend);
-    assert.equal(p.$("#target-include-me").checked, false);
-    assert.equal(scans(), before);
-    await p.click("#target-include-me");
+    assert.equal(p.$("#target-picker").hidden, true);
+    assert.equal(p.$("#target-include-me").checked, true);
+    assert.deepEqual(backend.session.connection.targets, [actor]);
+    assert.equal(backend.writes.length, 0);
     assert.ok(p.row("Checkout", actor));
   },
 );
@@ -330,9 +332,11 @@ test(
     await p.custom(`${actor},${alias}`, { includeMe: true });
     assert.deepEqual(p.backend.session.connection.targets, [actor, alias]);
     await p.custom("", { includeMe: true });
+    assert.deepEqual(p.backend.session.connection.targets, [actor, alias]);
+    assert.equal(p.$("#target-error").hidden, false);
+    await p.click(".target-chip button");
+    assert.equal(p.$("#target-picker").hidden, true);
     assert.deepEqual(p.backend.session.connection.targets, [actor]);
-    await p.custom("", { includeMe: false });
-    assert.deepEqual(p.backend.session.connection.targets, []);
   },
 );
 
@@ -342,7 +346,8 @@ test(
   async (t) => {
     const p = await popup(t);
     const ids = Array.from({ length: 20 }, (_, i) => `test-${i}`);
-    await p.custom(ids.join(","));
+    await p.custom(ids[0]);
+    await p.custom(ids.slice(1).join(","));
     await p.click("#target-include-me");
     assert.equal(p.$("#target-include-me").checked, false);
     assert.deepEqual(p.backend.session.connection.targets, ids);
@@ -393,7 +398,7 @@ test(
     p.$("#target-input").dispatchEvent(
       new p.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
     );
-    assert.equal(p.$("#target-form").hidden, true);
+    assert.equal(p.$("#target-panel").hidden, true);
     assert.deepEqual(p.backend.session.connection.targets, [actor]);
     p.$("#mine").dispatchEvent(
       new p.window.KeyboardEvent("keydown", {
@@ -419,5 +424,139 @@ test(
     await p.custom(alias);
     assert.equal(p.$("#mine-count").textContent, "1");
     assert.equal(p.backend.writes.length, 0);
+  },
+);
+
+test(
+  "ID panel: opening preserves results and keeps Include me hidden until another ID is added",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.click("#target-add");
+    assert.equal(p.$("#target-panel").hidden, false);
+    assert.equal(p.$("#target-picker").hidden, true);
+    assert.equal(p.$("#mine-count").textContent, "2");
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#target-include-me").disabled, false);
+    assert.equal(p.$("#empty").hidden, true);
+  },
+);
+
+test(
+  "ID panel: Add appends values one by one, preserves selection and clears the input",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.custom(alias, { includeMe: true });
+    assert.equal(p.$("#target-input").value, "");
+    assert.equal(p.$("#target-panel").hidden, false);
+    await p.custom(device, { includeMe: true });
+    assert.deepEqual(p.backend.session.connection.targets, [
+      actor,
+      alias,
+      device,
+    ]);
+    assert.equal(p.$("#target-summary").textContent, "2 additional IDs");
+    assert.equal(
+      p.$("#target-count").textContent,
+      "3 of 20 selected · including you",
+    );
+    assert.equal(p.backend.writes.length, 0);
+  },
+);
+
+test(
+  "ID panel: Include me remains usable while composing an additional ID",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.custom(alias, { includeMe: true });
+    p.$("#target-input").value = device;
+    await p.click("#target-include-me");
+    assert.equal(p.$("#target-panel").hidden, false);
+    assert.equal(p.$("#target-input").value, device);
+    await p.click("#target-apply");
+    assert.deepEqual(p.backend.session.connection.targets, [alias, device]);
+    assert.equal(p.$("#target-panel").hidden, false);
+  },
+);
+
+test(
+  "ID panel: invalid or duplicate Add keeps current results and performs no request",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.custom(alias, { includeMe: true });
+    const before = p.backend.requests.length;
+    for (const input of ["bad id", alias, "", actor]) {
+      p.$("#target-input").value = input;
+      await p.click("#target-apply");
+      assert.equal(p.$("#target-error").hidden, false);
+      assert.ok(p.row("Checkout", actor));
+      assert.ok(p.row("Checkout", alias));
+    }
+    assert.equal(p.backend.requests.length, before);
+    assert.deepEqual(p.backend.session.connection.targets, [actor, alias]);
+  },
+);
+
+test(
+  "ID panel: pasted newline list stays separated and exact",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.click("#target-add");
+    const event = new p.window.Event("paste", {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, "clipboardData", {
+      value: { getData: () => `${alias}\r\n${device}` },
+    });
+    p.$("#target-input").dispatchEvent(event);
+    await p.click("#target-apply");
+    assert.deepEqual(p.backend.session.connection.targets, [
+      actor,
+      alias,
+      device,
+    ]);
+  },
+);
+
+test(
+  "ID panel: clicking outside discards only the unsubmitted draft",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.custom(alias, { includeMe: true });
+    p.$("#target-input").value = "not-added";
+    await p.click("#search");
+    assert.equal(p.$("#target-panel").hidden, true);
+    assert.equal(p.$("#target-input").value, "");
+    assert.deepEqual(p.backend.session.connection.targets, [actor, alias]);
+  },
+);
+
+test(
+  "ID panel: opening and closing preserves an unsaved variant selection",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    const select = p.row("Checkout", actor).querySelector("select");
+    select.value = "express";
+    select.dispatchEvent(new p.window.Event("change"));
+    await p.click("#target-add");
+    await p.click("#target-cancel");
+    assert.equal(
+      p.row("Checkout", actor).querySelector("select").value,
+      "express",
+    );
+    assert.equal(
+      p.row("Checkout", actor).querySelector(".save-button").disabled,
+      false,
+    );
+    const calls = p.backend.requests.length;
+    await p.intervals.get(30000)();
+    assert.equal(p.backend.requests.length, calls);
   },
 );

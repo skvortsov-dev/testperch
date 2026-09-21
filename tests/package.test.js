@@ -25,7 +25,7 @@ for store in (False, True):
         assert all(prefix+str(p) in names for p in Path('src').rglob('*.js'))
         assert not any(any(part in n for part in ['node_modules/','tests/','.git','TEST-REPORT','RELEASE-REVIEW','INQUIRY','package-lock','scripts/']) for n in names)
         if store: assert not any(n.startswith('docs/') or n.endswith('.md') for n in names)
-        else: assert prefix+'README.md' in names
+        else: assert all(prefix+n in names for n in ['README.md','CONTRIBUTING.md'])
 `,
     ],
     { cwd: root },

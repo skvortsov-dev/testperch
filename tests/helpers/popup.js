@@ -193,14 +193,16 @@ export async function popup(t, backend = fixture()) {
     await settle();
   };
   const custom = async (value, { includeMe = false } = {}) => {
-    if ($("#target-include-me").checked !== includeMe)
+    if (!$("#target-picker").hidden && $("#target-include-me").checked !== includeMe)
       await click("#target-include-me");
-    await click("#target-add");
-    $("#target-input").value = value;
+    if ($("#target-panel").hidden) await click("#target-add");
+    $("#target-input").value = value.replace(/[\r\n]+/g, ",");
     $("#target-form").dispatchEvent(
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await settle();
+    if (!$("#target-picker").hidden && $("#target-include-me").checked !== includeMe)
+      await click("#target-include-me");
   };
   const row = (name, target) => {
     const card = [...window.document.querySelectorAll(".test-card")].find(

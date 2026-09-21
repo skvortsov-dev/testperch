@@ -32,7 +32,7 @@ test("restores custom IDs only for the same session actor and organization", () 
   const account = { user: "me", orgId: "7" };
   const saved = { ...account, targets: ["alias", "device-42"] };
   assert.deepEqual(restoredTargets(saved, account), saved.targets);
-  assert.deepEqual(restoredTargets({ ...saved, targets: [] }, account), []);
+  assert.deepEqual(restoredTargets({ ...saved, targets: [] }, account), ["me"]);
   for (const invalid of [
     null,
     { ...saved, user: "other" },

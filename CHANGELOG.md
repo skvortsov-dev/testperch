@@ -2,9 +2,13 @@
 
 ## 0.0.2 — Custom testing identities
 
+- Compact Testing IDs panel: add one ID with Enter or Add, keep existing IDs selected, and close without hiding the assignment list.
+- Fix popup clipping and help text overlapping search/results; long ID lists scroll inside their panel.
+- Require regression tests for behavior changes and visual checks at the actual popup dimensions.
+
 - Add multiple email/user/device IDs with the **person-plus icon next to the profile**.
 - Independently include or exclude your own account with **Include me**. Up to 20 selected IDs; exact matching without automatic alias expansion.
-- Remove ID chips from the view without changing their assignments. An empty selection never falls back to the signed-in account.
+- Remove ID chips from the view without changing their assignments. Removing the last additional ID returns to the signed-in account and hides **Include me**.
 - View assignments for any selected ID, with each row labeled by its email or ID.
 - Add, switch, or remove one ID at a time without changing other participants or rollout settings.
 - Restore selected IDs within the current browser session for the same Amplitude account and organization; disconnect clears them.

@@ -50,19 +50,23 @@ function context() {
   };
 }
 
-function render() {
+function renderTargets() {
   const ownEmail = state.account?.user;
   const additional = state.targets.filter((target) => target !== ownEmail);
+  element("target-picker").hidden = additional.length === 0;
   element("target-include-me").checked = state.targets.includes(ownEmail);
-  element("target-include-me").dataset.unavailable = String(
-    state.targetEditing,
-  );
+
   element("target-add").setAttribute(
     "aria-expanded",
     String(state.targetEditing),
   );
-  element("target-summary").hidden = state.targetEditing || !additional.length;
-  element("target-form").hidden = !state.targetEditing;
+  element("target-summary").hidden = !additional.length;
+  element("target-summary").textContent =
+    `${additional.length} additional ${additional.length === 1 ? "ID" : "IDs"}`;
+  element("target-count").textContent =
+    `${state.targets.length} of 20 selected${state.targets.includes(ownEmail) ? " · including you" : ""}`;
+  element("target-panel").hidden = !state.targetEditing;
+  element("target-empty").hidden = additional.length > 0;
   element("target-value").replaceChildren(
     ...additional.map((target) => {
       const chip = document.createElement("span");
@@ -81,6 +85,10 @@ function render() {
       return chip;
     }),
   );
+}
+
+function render() {
+  renderTargets();
   renderCatalog(state, {
     edit(id) {
       state.editing = id;
@@ -172,7 +180,6 @@ function displayAccount() {
 }
 
 async function changeAssignment(item, key, target) {
-  if (state.targetEditing) return;
   await withBusy("Saving… Keep this window open.", async () => {
     if (state.demo)
       state.demo.change(element("project").value, item.id, key, target);
@@ -252,28 +259,27 @@ async function connectSession(tabId, saved) {
 function editTarget() {
   if (state.busy) return;
   state.targetEditing = true;
-  state.editing = null;
-  element("target-input").value = state.targets
-    .filter((target) => target !== state.account.user)
-    .join("\n");
+  element("target-input").value = "";
   element("target-error").hidden = true;
   element("target-input").removeAttribute("aria-invalid");
   showMessage();
-  render();
+  closeSelectMenu();
+  renderTargets();
   element("target-input").focus();
 }
 
 async function selectTargets(targets) {
   await withBusy("Loading assignments for selected IDs…", async () => {
-    state.targets = targets;
-    state.targetEditing = false;
+    state.targets = targets.length ? targets : [state.account.user];
     state.query = "";
     element("search").value = "";
     await loadCatalog();
   });
 }
 
-element("target-add").onclick = editTarget;
+element("target-add").onclick = () =>
+  state.targetEditing ? closeTargets() : editTarget();
+element("target-summary").onclick = editTarget;
 element("target-include-me").onchange = () => {
   const additional = state.targets.filter(
     (target) => target !== state.account.user,
@@ -289,28 +295,55 @@ element("target-include-me").onchange = () => {
     showMessage("", error.message);
   }
 };
-element("target-cancel").onclick = () => {
+function closeTargets() {
   state.targetEditing = false;
   element("target-input").value = "";
-  render();
-};
-element("target-form").onsubmit = (event) => {
+  element("target-error").hidden = true;
+  renderTargets();
+  element("target-add").focus();
+}
+element("target-cancel").onclick = closeTargets;
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && state.targetEditing) {
+    event.preventDefault();
+    closeTargets();
+  }
+});
+document.addEventListener("click", (event) => {
+  if (
+    state.targetEditing &&
+    !state.busy &&
+    !event.composedPath().includes(element("target-panel")) &&
+    !element("target-add").contains(event.target) &&
+    !element("target-summary").contains(event.target) &&
+    !event.target.closest(".include-me")
+  )
+    closeTargets();
+});
+element("target-form").onsubmit = async (event) => {
   event.preventDefault();
+  if (state.busy) return;
   try {
-    const value = element("target-input").value;
-    const additional = value.trim() ? parseTargets(value) : [];
-    const includesMe = state.targets.includes(state.account.user);
-    // The account switch controls the signed-in email, even when pasted again.
-    const targets = [
-      ...new Set([
-        ...(includesMe ? [state.account.user] : []),
-        ...additional.filter((target) => target !== state.account.user),
-      ]),
-    ];
-    if (targets.length) parseTargets(targets.join("\n"));
+    // Additive input: Enter adds one ID, pasted comma/newline lists also work.
+    const additional = parseTargets(element("target-input").value);
+    const newIds = additional.filter(
+      (target) =>
+        target !== state.account.user && !state.targets.includes(target),
+    );
+    if (!newIds.length)
+      throw Error(
+        additional.includes(state.account.user)
+          ? state.targets.includes(state.account.user)
+            ? "Your account is already included. Add a different email or device ID."
+            : "Use Include me to show your own account."
+          : "This ID is already in your list.",
+      );
+    const targets = parseTargets([...state.targets, ...newIds].join("\n"));
     element("target-error").hidden = true;
     element("target-input").removeAttribute("aria-invalid");
-    selectTargets(targets);
+    await selectTargets(targets);
+    element("target-input").value = "";
+    element("target-input").focus();
   } catch (error) {
     element("target-error").textContent = error.message;
     element("target-error").hidden = false;
@@ -318,10 +351,17 @@ element("target-form").onsubmit = (event) => {
     element("target-input").focus();
   }
 };
-element("target-input").onkeydown = (event) => {
-  if (event.key === "Escape") {
+element("target-input").onpaste = (event) => {
+  const pasted = event.clipboardData?.getData("text");
+  if (pasted && /[\r\n]/.test(pasted)) {
     event.preventDefault();
-    element("target-cancel").click();
+    const input = element("target-input");
+    input.setRangeText(
+      pasted.replace(/[\r\n]+/g, ","),
+      input.selectionStart,
+      input.selectionEnd,
+      "end",
+    );
   }
 };
 

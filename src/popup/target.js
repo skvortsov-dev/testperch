@@ -41,7 +41,9 @@ export function restoredTargets(saved, account) {
       saved.targets.some((id) => typeof id !== "string" || /[\n,;]/u.test(id))
     )
       return [account.user];
-    return saved.targets.length ? parseTargets(saved.targets.join("\n")) : [];
+    return saved.targets.length
+      ? parseTargets(saved.targets.join("\n"))
+      : [account.user];
   } catch {
     return [account.user];
   }

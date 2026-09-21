@@ -41,14 +41,11 @@ export function renderCatalog(state, handlers) {
   closeSelectMenu();
   const scrollTop = element("catalog").scrollTop;
   const custom = isCustomTarget(state.targets, state.account?.user);
-  const items =
-    state.targetEditing || !state.targets.length
-      ? []
-      : filterCatalog(state.catalog, state);
+  const items = !state.targets.length
+    ? []
+    : filterCatalog(state.catalog, state);
   element("mine-label").textContent = custom ? "Assigned tests" : "My tests";
-  element("mine-count").textContent = state.targetEditing
-    ? "—"
-    : assignmentCount(state.catalog);
+  element("mine-count").textContent = assignmentCount(state.catalog);
   element("mine").setAttribute("aria-selected", String(state.scope === "mine"));
   element("explore").setAttribute(
     "aria-selected",
@@ -94,14 +91,6 @@ export function renderCatalog(state, handlers) {
     element("empty-description").textContent =
       "Include your account or add an email or device ID next to your profile.";
     element("browse").hidden = true;
-  }
-
-  if (state.targetEditing) {
-    element("empty-title").textContent = "Choose testing IDs";
-    element("empty-description").textContent =
-      "Apply emails or user/device IDs above to load their assignments.";
-    element("browse").hidden = true;
-    element("result-count").textContent = "";
   }
 
   for (const item of items) {

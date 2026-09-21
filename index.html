@@ -96,7 +96,7 @@
               class="theme-button target-add"
               aria-label="Add or edit testing IDs"
               aria-expanded="false"
-              aria-controls="target-form"
+              aria-controls="target-panel"
               title="Add email or device ID"
             >
               <svg
@@ -120,44 +120,70 @@
               aria-label="Connected"
             ></span>
           </div>
-          <div class="target-picker">
+          <div id="target-picker" class="target-picker" hidden>
             <label class="include-me" for="target-include-me">
               <input id="target-include-me" type="checkbox" checked />
               <span class="toggle-track" aria-hidden="true"></span>
               <span>Include me</span>
             </label>
-            <div id="target-summary" class="target-summary" hidden>
-              <div id="target-value" class="target-chips"></div>
-            </div>
-            <form id="target-form" hidden>
-              <label for="target-input"
-                >Additional emails or user/device IDs</label
+            <button
+              id="target-summary"
+              type="button"
+              class="target-summary"
+              hidden
+            ></button>
+          </div>
+          <section
+            id="target-panel"
+            class="target-panel"
+            role="dialog"
+            aria-labelledby="target-title"
+            hidden
+          >
+            <div class="target-panel-heading">
+              <div>
+                <h2 id="target-title">Testing IDs</h2>
+                <span id="target-count"></span>
+              </div>
+              <button
+                type="button"
+                id="target-cancel"
+                class="quiet"
+                aria-label="Close testing IDs"
               >
+                Done
+              </button>
+            </div>
+            <form id="target-form">
+              <label for="target-input">Email or device ID</label>
               <div class="target-input-row">
-                <textarea
+                <input
                   id="target-input"
-                  rows="3"
+                  type="text"
                   maxlength="20500"
-                  placeholder="alex+test@example.com&#10;demo-device-01"
+                  placeholder="Enter an email or device ID"
                   autocomplete="off"
                   spellcheck="false"
                   autocapitalize="none"
                   aria-describedby="target-help target-error"
-                ></textarea>
-                <button type="button" id="target-cancel" class="quiet">
-                  Cancel
-                </button>
+                />
                 <button type="submit" id="target-apply" class="primary">
-                  Apply
+                  Add
                 </button>
               </div>
-              <p id="target-help">
-                One per line, or separated by commas. Up to 20 IDs including
-                you. Include me controls your account separately.
-              </p>
+              <p id="target-help">Add one ID at a time. Press Enter or Add.</p>
               <p id="target-error" class="target-error" role="alert" hidden></p>
             </form>
-          </div>
+            <div
+              id="target-value"
+              class="target-chips"
+              aria-label="Additional testing IDs"
+            ></div>
+            <p id="target-empty">No additional IDs yet.</p>
+            <p class="target-footnote">
+              Removing an ID here only hides it from this view.
+            </p>
+          </section>
           <label class="eyebrow" for="project">PROJECT</label>
           <select id="project"></select>
         </div>
@@ -247,7 +273,7 @@
           <p>
             Assigning a variant changes only one selected ID’s Testing
             assignment. Leaving a test restores normal targeting, including any
-            100% rollout. Keep this popup open while saving.
+            100% rollout. Keep this popup open until the save finishes.
           </p>
         </details>
         <span
