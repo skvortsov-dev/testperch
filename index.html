@@ -15,7 +15,7 @@
             <img src="assets/icon.svg" width="36" height="36" alt="" />
           </span>
           <span
-            >TestPerch <span class="beta">0.0.1</span
+            >TestPerch <span class="beta">0.0.2</span
             ><small>Experiment & flag testing for Amplitude</small></span
           >
         </div>
@@ -90,11 +90,73 @@
               <strong id="account-email"></strong
               ><span id="organization"></span>
             </div>
+            <button
+              id="target-add"
+              type="button"
+              class="theme-button target-add"
+              aria-label="Add or edit testing IDs"
+              aria-expanded="false"
+              aria-controls="target-form"
+              title="Add email or device ID"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="9" cy="7" r="3" />
+                <path d="M3 20v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" />
+              </svg>
+            </button>
             <span
               class="connected-dot"
               title="Connected"
               aria-label="Connected"
             ></span>
+          </div>
+          <div class="target-picker">
+            <label class="include-me" for="target-include-me">
+              <input id="target-include-me" type="checkbox" checked />
+              <span class="toggle-track" aria-hidden="true"></span>
+              <span>Include me</span>
+            </label>
+            <div id="target-summary" class="target-summary" hidden>
+              <div id="target-value" class="target-chips"></div>
+            </div>
+            <form id="target-form" hidden>
+              <label for="target-input"
+                >Additional emails or user/device IDs</label
+              >
+              <div class="target-input-row">
+                <textarea
+                  id="target-input"
+                  rows="3"
+                  maxlength="20500"
+                  placeholder="alex+test@example.com&#10;demo-device-01"
+                  autocomplete="off"
+                  spellcheck="false"
+                  autocapitalize="none"
+                  aria-describedby="target-help target-error"
+                ></textarea>
+                <button type="button" id="target-cancel" class="quiet">
+                  Cancel
+                </button>
+                <button type="submit" id="target-apply" class="primary">
+                  Apply
+                </button>
+              </div>
+              <p id="target-help">
+                One per line, or separated by commas. Up to 20 IDs including
+                you. Include me controls your account separately.
+              </p>
+              <p id="target-error" class="target-error" role="alert" hidden></p>
+            </form>
           </div>
           <label class="eyebrow" for="project">PROJECT</label>
           <select id="project"></select>
@@ -107,7 +169,8 @@
               aria-selected="true"
               aria-controls="catalog"
             >
-              My tests <span id="mine-count">0</span>
+              <span id="mine-label">My tests</span>
+              <span id="mine-count">0</span>
             </button>
             <button
               id="explore"
@@ -182,9 +245,9 @@
         <details>
           <summary>How testing works</summary>
           <p>
-            Assigning a variant changes only your Testing assignment. Leaving a
-            test restores normal targeting, including any 100% rollout. Keep
-            this popup open while saving.
+            Assigning a variant changes only one selected ID’s Testing
+            assignment. Leaving a test restores normal targeting, including any
+            100% rollout. Keep this popup open while saving.
           </p>
         </details>
         <span
@@ -205,6 +268,7 @@
           </div>
         </div>
         <form class="variant-editor">
+          <p class="assignment-target" hidden></p>
           <div class="variant-row">
             <select class="variant-select" required></select>
             <button type="button" class="leave-button danger">

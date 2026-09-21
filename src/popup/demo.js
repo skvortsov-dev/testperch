@@ -54,6 +54,22 @@ export function createDemo() {
     },
   ];
 
+  const assignments = new Map();
+  const defaults = {
+    "alex@example.com": { "demo-1": "one-page", "demo-2": "on" },
+    "alex+checkout@example.com": { "demo-1": "classic", "demo-3": "compact" },
+    "demo-device-01": { "demo-4": "on" },
+  };
+  function forTarget(project, target) {
+    const id = JSON.stringify([project, target]);
+    if (!assignments.has(id))
+      assignments.set(
+        id,
+        project === "demo-dev" ? { ...(defaults[target] || {}) } : {},
+      );
+    return assignments.get(id);
+  }
+
   return {
     account: {
       user: "alex@example.com",
@@ -61,17 +77,37 @@ export function createDemo() {
       orgUrl: "Example workspace",
       projects,
     },
-    scan(project) {
+    scan(project, targets = ["alex@example.com"]) {
       return {
-        catalog: project === "demo-dev" ? structuredClone(catalog) : [],
+        catalog: catalog.map((item) => {
+          const memberships = targets.map((target) => ({
+            target,
+            variants: item.availableVariants.filter(
+              (v) => v.key === forTarget(project, target)[item.id],
+            ),
+          }));
+          const keys = new Set(
+            memberships.flatMap((m) => m.variants.map((v) => v.key)),
+          );
+          return {
+            ...structuredClone(item),
+            memberships,
+            variants: item.availableVariants.filter((v) => keys.has(v.key)),
+          };
+        }),
         failures: [],
       };
     },
-    change(id, key) {
+    change(project, id, key, target) {
       const item = catalog.find((entry) => entry.id === id);
-      item.variants = key
-        ? item.availableVariants.filter((entry) => entry.key === key)
-        : [];
+      if (
+        !item ||
+        (key !== null && !item.availableVariants.some((v) => v.key === key))
+      )
+        throw Error("Variant is no longer available.");
+      const assignments = forTarget(project, target);
+      if (key === null) delete assignments[id];
+      else assignments[id] = key;
     },
   };
 }

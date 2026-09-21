@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TestPerch",
-  "version": "0.0.1",
-  "description": "Manage your own experiment and feature flag testing assignments in Amplitude.",
+  "version": "0.0.2",
+  "description": "Manage Amplitude experiment and feature flag testing for your account, custom emails, and user/device IDs.",
   "permissions": [
     "scripting",
     "storage"

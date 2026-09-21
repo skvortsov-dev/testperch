@@ -309,3 +309,174 @@ test("session readiness probe never calls the API and handles signed-out users",
   assert.equal(result.ready, false);
   assert.equal(result.signedIn, false);
 });
+
+for (const target of [
+  "me+paytest@example.com",
+  "device:QA-001",
+  "teammate@example.com",
+]) {
+  test(`custom target ${target}: exact read, move, and removal preserve everyone else`, async () => {
+    let f = {
+      ...flag(),
+      inclusionsMap: {
+        on: [args.user, target, target + "-other"],
+        off: ["unrelated"],
+      },
+    };
+    const { run } = harness(({ query, variables }) => {
+      if (query.startsWith("mutation")) {
+        f.inclusionsMap = variables.flagConfig.inclusionsMap;
+        return { data: { updateFlagConfig: true } };
+      }
+      return { data: { flags: [f], flagConfig: f } };
+    });
+    const custom = { ...args, targets: [target], target };
+    const scan = await run("scan", custom);
+    assert.equal(scan.ok, true);
+    assert.equal(scan.assignments.length, 1);
+    assert.equal(scan.catalog[0].memberships[0].target, target);
+    assert.equal(
+      JSON.stringify(scan.catalog).includes(target + "-other"),
+      false,
+    );
+    assert.equal(
+      (await run("assign", { ...custom, variant: "off" })).assigned,
+      true,
+    );
+    assert.deepEqual(f.inclusionsMap, {
+      on: [args.user, target + "-other"],
+      off: ["unrelated", target],
+    });
+    assert.equal((await run("remove", custom)).removed, true);
+    assert.deepEqual(f.inclusionsMap, {
+      on: [args.user, target + "-other"],
+      off: ["unrelated"],
+    });
+  });
+}
+
+test("multiple IDs are an OR filter and replace the signed-in email", async () => {
+  const a = "me+alias@example.com",
+    b = "device-42";
+  const { run } = harness(() => ({
+    data: {
+      flags: [
+        { ...flag(), id: "100", inclusionsMap: { on: [args.user] } },
+        {
+          ...flag(),
+          id: "101",
+          inclusionsMap: { on: [a], off: [b, "private-person"] },
+        },
+        { ...flag(), id: "102", inclusionsMap: { on: [a + ".suffix"] } },
+        { ...flag(), id: "103", deleted: true, inclusionsMap: { on: [a] } },
+      ],
+    },
+  }));
+  const r = await run("scan", { ...args, targets: [a, b, a] });
+  assert.equal(r.ok, true);
+  assert.deepEqual(
+    Array.from(r.assignments, (f) => f.id),
+    ["101"],
+  );
+  assert.equal(r.assignments[0].memberships.length, 2);
+  assert.equal(r.assignments[0].memberships[0].variants[0].key, "on");
+  assert.equal(r.assignments[0].memberships[1].variants[0].key, "off");
+  assert.equal(JSON.stringify(r.catalog).includes("private-person"), false);
+});
+
+test("multiple selected IDs never cause an implicit bulk mutation", async () => {
+  let f = {
+      ...flag(),
+      inclusionsMap: { on: ["alias", "device", args.user], off: [] },
+    },
+    writes = 0;
+  const { run } = harness(({ query, variables }) => {
+    if (query.startsWith("mutation")) {
+      writes++;
+      f.inclusionsMap = variables.flagConfig.inclusionsMap;
+      return { data: { updateFlagConfig: true } };
+    }
+    return { data: { flagConfig: f } };
+  });
+  const custom = { ...args, targets: ["alias", "device"], variant: "off" };
+  assert.equal((await run("assign", custom)).ok, false);
+  assert.equal(
+    (await run("remove", { ...custom, target: args.user })).ok,
+    false,
+  );
+  assert.equal(writes, 0);
+  assert.equal(
+    (await run("assign", { ...custom, target: "device" })).assigned,
+    true,
+  );
+  assert.deepEqual(f.inclusionsMap, {
+    on: ["alias", args.user],
+    off: ["device"],
+  });
+  assert.equal(writes, 1);
+});
+
+test("invalid targets fail closed before requests and do not fall back to the actor", async () => {
+  const { run } = harness(() =>
+    assert.fail("Invalid IDs must not reach the API"),
+  );
+  for (const targets of [
+    [],
+    null,
+    "",
+    [""],
+    [null],
+    ["a b"],
+    ["a,b"],
+    ["a\nb"],
+    ["x".repeat(1025)],
+    Array(21).fill("a"),
+  ]) {
+    assert.equal((await run("scan", { ...args, targets })).ok, false);
+    assert.equal((await run("remove", { ...args, targets })).ok, false);
+  }
+});
+
+test("custom IDs do not bypass actor, organization, or session-switch checks", async () => {
+  let calls = 0;
+  const { run, org } = harness(() => {
+    calls++;
+    org.user = "new-actor@example.com";
+    return { data: { flagConfig: flag() } };
+  });
+  const custom = {
+    ...args,
+    targets: ["custom"],
+    target: "custom",
+    variant: "off",
+  };
+  assert.equal((await run("assign", { ...custom, user: "custom" })).ok, false);
+  assert.equal((await run("assign", { ...custom, orgId: "8" })).ok, false);
+  assert.equal(calls, 0);
+  assert.equal((await run("assign", custom)).ok, false);
+  assert.equal(calls, 1); // Read completed; the changed actor blocks the mutation.
+});
+
+test("custom assignment read-back verifies the target rather than the actor", async () => {
+  const { run } = harness(({ query }) => ({
+    data: query.startsWith("mutation")
+      ? { updateFlagConfig: true }
+      : {
+          flagConfig: {
+            ...flag(),
+            inclusionsMap: { off: [args.user], on: ["device"] },
+          },
+        },
+  }));
+  assert.equal(
+    (
+      await run("assign", {
+        ...args,
+        targets: ["device"],
+        target: "device",
+        variant: "off",
+      })
+    ).ok,
+    false,
+  );
+});

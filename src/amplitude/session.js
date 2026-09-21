@@ -1,5 +1,5 @@
 // Runs only inside an authorized Amplitude tab via chrome.scripting (MAIN world).
-// No cookies, tokens, API keys, or other users' assignments leave that tab.
+// Only the signed-in account, metadata, and the selected target's assignments leave the tab.
 export async function amplitudeSession(action, args = {}) {
   try {
     if (
@@ -10,9 +10,9 @@ export async function amplitudeSession(action, args = {}) {
     if (action === "probe") {
       const signedIn = Boolean(
         org?.isLoggedIn &&
-        typeof org.user === "string" &&
-        org.user &&
-        /^\d+$/.test(String(org.orgId)),
+          typeof org.user === "string" &&
+          org.user &&
+          /^\d+$/.test(String(org.orgId)),
       );
       const ready =
         signedIn &&
@@ -114,6 +114,34 @@ export async function amplitudeSession(action, args = {}) {
     const project = String(args.project || "");
     if (!apps.some((p) => String(p.id) === project))
       throw Error("Project is not available to this account.");
+    // Keep the session actor separate from the explicitly selected testing IDs.
+    const requested = args.targets === undefined ? [user] : args.targets;
+    if (
+      !Array.isArray(requested) ||
+      !requested.length ||
+      requested.length > 20 ||
+      requested.some(
+        (id) =>
+          typeof id !== "string" ||
+          !id.length ||
+          id.length > 1024 ||
+          /[\s,;\u0000-\u001f\u007f]/u.test(id),
+      )
+    )
+      throw Error(
+        "Select 1–20 exact email or user/device IDs, without spaces.",
+      );
+    const targets = [...new Set(requested)];
+    // A mutation always addresses one visible identity, never an implicit bulk edit.
+    const target =
+      args.target === undefined && targets.length === 1
+        ? targets[0]
+        : args.target;
+    if (
+      (action === "assign" || action === "remove") &&
+      !targets.includes(target)
+    )
+      throw Error("Choose one of the selected testing IDs before saving.");
     const fields =
       "id projectId key name type deleted version inclusionsMap variants { key name } apiKeys { id label }";
     if (action === "scan") {
@@ -132,7 +160,7 @@ export async function amplitudeSession(action, args = {}) {
             throw Error("Project does not match.");
           const map = mapOf(flag);
           const variants = Object.entries(map)
-            .filter(([, ids]) => ids.includes(user))
+            .filter(([, ids]) => targets.some((id) => ids.includes(id)))
             .map(([key]) => ({
               key,
               name: flag.variants?.find((v) => v.key === key)?.name || key,
@@ -145,6 +173,15 @@ export async function amplitudeSession(action, args = {}) {
             type: flag.type,
             variants,
             availableVariants,
+            memberships: targets.map((target) => ({
+              target,
+              variants: Object.entries(map)
+                .filter(([, ids]) => ids.includes(target))
+                .map(([key]) => ({
+                  key,
+                  name: flag.variants?.find((v) => v.key === key)?.name || key,
+                })),
+            })),
             deployments: (flag.apiKeys || []).map((d) => d.label),
           };
           catalog.push(item);
@@ -194,20 +231,20 @@ export async function amplitudeSession(action, args = {}) {
         throw Error("Variant is no longer available. Refresh the list.");
       if (
         action === "remove" &&
-        !Object.values(before).some((ids) => ids.includes(user))
+        !Object.values(before).some((ids) => ids.includes(target))
       )
         return { ok: true, removed: true };
       const after = Object.fromEntries(
         Object.entries(before).map(([key, ids]) => [
           key,
-          ids.filter((id) => id !== user),
+          ids.filter((id) => id !== target),
         ]),
       );
       if (action === "assign")
         Object.defineProperty(after, args.variant, {
           value: [
             ...(Object.hasOwn(after, args.variant) ? after[args.variant] : []),
-            user,
+            target,
           ],
           enumerable: true,
           writable: true,
@@ -234,7 +271,7 @@ export async function amplitudeSession(action, args = {}) {
           "Configuration unavailable after saving. Refresh the list.",
         );
       const memberships = Object.entries(mapOf(verified))
-        .filter(([, ids]) => ids.includes(user))
+        .filter(([, ids]) => ids.includes(target))
         .map(([key]) => key);
       if (action === "assign") {
         if (memberships.length !== 1 || memberships[0] !== args.variant)

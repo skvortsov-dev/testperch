@@ -998,3 +998,155 @@ footer:has(details[open]) > #sync-state {
   display: block;
   margin-top: 8px;
 }
+
+/* Keep the session account visible while explicitly choosing testing identities. */
+.target-picker {
+  margin: -2px 0 12px;
+}
+.target-add {
+  flex-shrink: 0;
+  color: var(--blue);
+}
+.include-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.include-me input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.toggle-track {
+  width: 26px;
+  height: 16px;
+  border-radius: 20px;
+  background: var(--input-border);
+  transition: background 0.15s;
+}
+.toggle-track::after {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px #0002;
+  transition: transform 0.15s;
+}
+.include-me input:checked + .toggle-track {
+  background: var(--blue);
+}
+.include-me input:checked + .toggle-track::after {
+  transform: translateX(10px);
+}
+.include-me input:focus-visible + .toggle-track {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.include-me:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.target-summary {
+  margin-top: 7px;
+}
+.target-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  max-height: 64px;
+  overflow-y: auto;
+}
+.target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding-left: 7px;
+}
+.target-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.target-chip button {
+  border: 0;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  padding: 3px 6px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+}
+.target-chip button:hover:not(:disabled) {
+  background: var(--menu-hover);
+  color: var(--text);
+}
+#target-form {
+  margin-top: 8px;
+}
+#target-form label {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--muted);
+}
+.target-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+#target-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 58px;
+  max-height: 110px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+}
+#target-input[aria-invalid="true"] {
+  border-color: #e45a72;
+}
+#target-help,
+.target-error {
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+.target-error {
+  color: #be123c;
+}
+[data-theme="dark"] .target-error {
+  color: #fda4af;
+}
+.assignment-target {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.variant-editor + .variant-editor {
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+}

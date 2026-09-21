@@ -1,3 +1,4 @@
+import { parseTargets, restoredTargets } from "./target.js";
 import {
   isAutoConnectEnabled,
   setAutoConnectEnabled,
@@ -36,6 +37,8 @@ const state = {
   editing: null,
   busy: false,
   autoConnect: true,
+  targets: [],
+  targetEditing: false,
 };
 
 function context() {
@@ -43,10 +46,41 @@ function context() {
     user: state.account.user,
     orgId: state.account.orgId,
     project: element("project").value,
+    targets: state.targets,
   };
 }
 
 function render() {
+  const ownEmail = state.account?.user;
+  const additional = state.targets.filter((target) => target !== ownEmail);
+  element("target-include-me").checked = state.targets.includes(ownEmail);
+  element("target-include-me").dataset.unavailable = String(
+    state.targetEditing,
+  );
+  element("target-add").setAttribute(
+    "aria-expanded",
+    String(state.targetEditing),
+  );
+  element("target-summary").hidden = state.targetEditing || !additional.length;
+  element("target-form").hidden = !state.targetEditing;
+  element("target-value").replaceChildren(
+    ...additional.map((target) => {
+      const chip = document.createElement("span");
+      chip.className = "target-chip";
+      const label = document.createElement("span");
+      label.textContent = target;
+      label.title = target;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Stop showing ${target}`);
+      remove.title = "Remove from this view; keeps test assignments";
+      remove.onclick = () =>
+        selectTargets(state.targets.filter((id) => id !== target));
+      chip.append(label, remove);
+      return chip;
+    }),
+  );
   renderCatalog(state, {
     edit(id) {
       state.editing = id;
@@ -84,19 +118,36 @@ async function loadCatalog({ silent = false } = {}) {
     render();
     element("empty").hidden = true;
   }
+  if (!state.targets.length) {
+    state.catalog = [];
+    render();
+    if (!state.demo)
+      await rememberConnection(state.tabId, element("project").value, {
+        user: state.account.user,
+        orgId: state.account.orgId,
+        targets: [],
+      });
+    showMessage();
+    element("sync-state").textContent = "No testing IDs selected";
+    return true;
+  }
   if (!element("project").value) {
     showMessage("No projects with deployments are available to this account.");
     return false;
   }
   const data = state.demo
-    ? state.demo.scan(element("project").value)
+    ? state.demo.scan(element("project").value, state.targets)
     : await requestSession(state.tabId, "scan", context());
   const changed =
     JSON.stringify(state.catalog) !== JSON.stringify(data.catalog);
   state.catalog = data.catalog;
   if (!silent || changed) render();
   if (!state.demo)
-    await rememberConnection(state.tabId, element("project").value);
+    await rememberConnection(state.tabId, element("project").value, {
+      user: state.account.user,
+      orgId: state.account.orgId,
+      targets: state.targets,
+    });
   if (data.failures.length) {
     showMessage(
       "",
@@ -110,19 +161,26 @@ async function loadCatalog({ silent = false } = {}) {
 }
 
 function displayAccount() {
+  state.targets = [state.account.user];
+  state.targetEditing = false;
+  element("target-input").value = "";
+  element("target-error").hidden = true;
   state.scope = "mine";
   state.kind = "all";
   state.query = "";
   showAccount(state.account, Boolean(state.demo));
 }
 
-async function changeAssignment(item, key) {
+async function changeAssignment(item, key, target) {
+  if (state.targetEditing) return;
   await withBusy("Saving… Keep this window open.", async () => {
-    if (state.demo) state.demo.change(item.id, key);
+    if (state.demo)
+      state.demo.change(element("project").value, item.id, key, target);
     else {
       await requestSession(state.tabId, key === null ? "remove" : "assign", {
         ...context(),
         id: item.id,
+        target,
         ...(key === null ? {} : { variant: key }),
       });
     }
@@ -130,8 +188,8 @@ async function changeAssignment(item, key) {
     if (loaded)
       showMessage(
         key === null
-          ? `You left ${item.name}.`
-          : `Assignment saved for ${item.name}.`,
+          ? `Removed ${target} from ${item.name}.`
+          : `Saved ${target} in ${item.name}.`,
       );
   });
 }
@@ -148,6 +206,10 @@ async function disconnect() {
     state.demo = null;
     state.catalog = [];
     state.editing = null;
+    state.targets = [];
+    state.targetEditing = false;
+    element("target-input").value = "";
+    element("target-value").textContent = "";
     element("results").replaceChildren();
     element("account-email").textContent = "";
     element("organization").textContent = "";
@@ -175,6 +237,7 @@ async function connectSession(tabId, saved) {
   state.demo = null;
   state.account = await requestSession(tabId, "connect");
   displayAccount();
+  state.targets = restoredTargets(saved, state.account);
   if (saved && state.account.projects.some((p) => p.id === saved.project))
     element("project").value = saved.project;
   updateSelects();
@@ -185,6 +248,82 @@ async function connectSession(tabId, saved) {
       `Some projects are unavailable.\n${state.account.failures.join("\n")}`,
     );
 }
+
+function editTarget() {
+  if (state.busy) return;
+  state.targetEditing = true;
+  state.editing = null;
+  element("target-input").value = state.targets
+    .filter((target) => target !== state.account.user)
+    .join("\n");
+  element("target-error").hidden = true;
+  element("target-input").removeAttribute("aria-invalid");
+  showMessage();
+  render();
+  element("target-input").focus();
+}
+
+async function selectTargets(targets) {
+  await withBusy("Loading assignments for selected IDs…", async () => {
+    state.targets = targets;
+    state.targetEditing = false;
+    state.query = "";
+    element("search").value = "";
+    await loadCatalog();
+  });
+}
+
+element("target-add").onclick = editTarget;
+element("target-include-me").onchange = () => {
+  const additional = state.targets.filter(
+    (target) => target !== state.account.user,
+  );
+  const targets = element("target-include-me").checked
+    ? [state.account.user, ...additional]
+    : additional;
+  try {
+    if (targets.length) parseTargets(targets.join("\n"));
+    selectTargets(targets);
+  } catch (error) {
+    render();
+    showMessage("", error.message);
+  }
+};
+element("target-cancel").onclick = () => {
+  state.targetEditing = false;
+  element("target-input").value = "";
+  render();
+};
+element("target-form").onsubmit = (event) => {
+  event.preventDefault();
+  try {
+    const value = element("target-input").value;
+    const additional = value.trim() ? parseTargets(value) : [];
+    const includesMe = state.targets.includes(state.account.user);
+    // The account switch controls the signed-in email, even when pasted again.
+    const targets = [
+      ...new Set([
+        ...(includesMe ? [state.account.user] : []),
+        ...additional.filter((target) => target !== state.account.user),
+      ]),
+    ];
+    if (targets.length) parseTargets(targets.join("\n"));
+    element("target-error").hidden = true;
+    element("target-input").removeAttribute("aria-invalid");
+    selectTargets(targets);
+  } catch (error) {
+    element("target-error").textContent = error.message;
+    element("target-error").hidden = false;
+    element("target-input").setAttribute("aria-invalid", "true");
+    element("target-input").focus();
+  }
+};
+element("target-input").onkeydown = (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    element("target-cancel").click();
+  }
+};
 
 element("connect").onclick = () => {
   withBusy("Connecting to Amplitude…", async () => {
@@ -325,6 +464,7 @@ async function autoRefresh() {
     state.demo ||
     state.busy ||
     state.editing ||
+    state.targetEditing ||
     isSelectMenuOpen() ||
     document.hidden
   )

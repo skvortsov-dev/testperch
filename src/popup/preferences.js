@@ -44,9 +44,11 @@ export async function getConnection() {
     : null;
 }
 
-export async function rememberConnection(tabId, project) {
+export async function rememberConnection(tabId, project, identity = {}) {
   if (globalThis.chrome?.storage)
-    await chrome.storage.session.set({ connection: { tabId, project } });
+    await chrome.storage.session.set({
+      connection: { tabId, project, ...identity },
+    });
 }
 
 export async function forgetConnection() {
