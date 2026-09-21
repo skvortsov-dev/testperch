@@ -15,9 +15,9 @@ An independent Chrome extension for QA engineers, developers, and product manage
 
 ## Video
 
-https://github.com/user-attachments/assets/428f4f84-04e1-45dc-816d-6130aca37c52
+![TestPerch demo: switching a variant, joining a test, testing other IDs, and the dark theme](docs/demo.gif)
 
-Recorded with fictional data in version 0.0.1. Version 0.0.2 also supports custom testing IDs.
+Recorded in **Try the demo** with fictional data in version 0.0.2.
 
 ## Install
 
