@@ -21,10 +21,9 @@ https://github.com/user-attachments/assets/bb7856df-c188-47ba-bc09-d4ab5fbda031
 
 ## Install
 
-1. Open [**Releases**](https://github.com/skvortsov-dev/testperch/releases), download **`testperch-v<version>.zip`** from **Assets**, and unzip it into a permanent folder. You can also clone this repository.
-2. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the folder containing `manifest.json`.
-3. Open TestPerch. It connects automatically to an open, signed-in Amplitude Experiment tab. If needed, use **Sign in to Amplitude**, finish signing in, and reopen TestPerch.
-4. Choose a project. **My tests** shows your assignments; **Find tests** searches existing experiments and flags in the selected project. Choose an available variant → **Add me to test**. For an existing assignment, use **Apply variant** to switch groups or **Leave test** to remove yourself.
+1. Install [**TestPerch from the Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). To install a specific version unpacked instead, download **`testperch-v<version>.zip`** from [**Releases**](https://github.com/skvortsov-dev/testperch/releases) (or clone this repository), unzip it into a permanent folder, then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the folder containing `manifest.json`.
+2. Open TestPerch. It connects automatically to an open, signed-in Amplitude Experiment tab. If needed, use **Sign in to Amplitude**, finish signing in, and reopen TestPerch.
+3. Choose a project. **My tests** shows your assignments; **Find tests** searches existing experiments and flags in the selected project. Choose an available variant → **Add me to test**. For an existing assignment, use **Apply variant** to switch groups or **Leave test** to remove yourself.
 
 Keep the popup open until a save finishes. Leaving Testing restores normal targeting; it does not exclude you from a 100% rollout. IDs are matched exactly; cohorts and automatic rollout participation are not included. Archived configurations are excluded. The account must have permission to edit the configuration.
 
