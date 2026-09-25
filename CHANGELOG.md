@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.2.1 — Store listing name
+
+- Rename the extension to "TestPerch — Testing for Amplitude Experiment & Feature Flags" and tighten the short description so Chrome Web Store search finds it by Amplitude, Experiment, and feature-flag queries. No functional changes.
+
 ## 0.0.2 — Custom testing identities
 
 - Compact Testing IDs panel: add one ID with Enter or Add, keep existing IDs selected, and close without hiding the assignment list.

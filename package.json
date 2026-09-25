@@ -1,13 +1,13 @@
 {
   "name": "testperch",
-  "version": "0.0.2",
+  "version": "0.0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "package": "python3 scripts/package.py"
   },
-  "description": "Manage Amplitude experiment and feature flag testing for your account, custom emails, and user/device IDs.",
+  "description": "Manage Amplitude Experiment testing: join A/B tests & feature flags, switch variants, check custom emails and user/device IDs.",
   "devDependencies": {
     "jsdom": "30.1.0"
   },
