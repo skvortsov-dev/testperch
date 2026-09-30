@@ -236,7 +236,25 @@
               type="search"
               placeholder="Search by name or key…"
               aria-label="Search by name or key"
-            />
+            /><button
+              id="search-clear"
+              class="search-clear"
+              type="button"
+              aria-label="Clear search"
+              title="Clear search"
+              hidden
+            >
+              <svg
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="m6 6 8 8M14 6l-8 8" />
+              </svg>
+            </button>
           </div>
           <select id="kind" aria-label="Configuration type">
             <option value="all">All types</option>

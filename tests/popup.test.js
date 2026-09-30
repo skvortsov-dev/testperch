@@ -96,6 +96,26 @@ test(
   },
 );
 test(
+  "search clear button appears for a query and restores the unfiltered list",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.click("#explore");
+    assert.equal(p.$("#search-clear").hidden, true);
+    p.$("#search").value = "search";
+    p.$("#search").dispatchEvent(new p.window.Event("input"));
+    assert.equal(p.$("#search-clear").hidden, false);
+    assert.equal(p.window.document.querySelectorAll(".test-card").length, 1);
+
+    await p.click("#search-clear");
+
+    assert.equal(p.$("#search").value, "");
+    assert.equal(p.$("#search-clear").hidden, true);
+    assert.equal(p.window.document.querySelectorAll(".test-card").length, 3);
+    assert.equal(p.window.document.activeElement, p.$("#search"));
+  },
+);
+test(
   "full popup: invalid additional input preserves own account and existing results",
   options,
   async (t) => {

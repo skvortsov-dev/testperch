@@ -567,6 +567,13 @@ element("search").oninput = () => {
   state.editing = null;
   render();
 };
+element("search-clear").onclick = () => {
+  state.query = "";
+  state.editing = null;
+  element("search").value = "";
+  render();
+  element("search").focus();
+};
 // Native buttons retain normal Tab navigation; arrows also switch between tabs.
 for (const id of ["mine", "explore"]) {
   element(id).onkeydown = (event) => {

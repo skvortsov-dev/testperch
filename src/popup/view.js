@@ -41,6 +41,7 @@ export function showAccount(account, demo) {
 /** Server-provided names are always rendered as text, never HTML. */
 export function renderCatalog(state, handlers) {
   closeSelectMenu();
+  element("search-clear").hidden = !state.query;
   const scrollTop = element("catalog").scrollTop;
   const custom = isCustomTarget(state.targets, state.account?.user);
   const mutable = Boolean(state.demo) || state.live !== false;

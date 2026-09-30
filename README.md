@@ -19,20 +19,21 @@ An independent Chrome extension for QA engineers, developers, and product manage
 
 17 seconds: the persistent side panel, Testing IDs, a device ID, experiment and feature-flag search, and both themes. Recorded from the installed extension in **Try the demo** with fictional data. Click the preview for the MP4.
 
-## Что нового в 0.0.3
+## What’s new in 0.0.3
 
-- Весь интерфейс переехал в боковую панель Chrome и остаётся открытым при переключении вкладок и перезагрузке страницы.
-- **Testing IDs** открывается компактно поверх списка: можно добавить до 20 email/user/device ID и отдельно включать или исключать свою учётку.
-- Последний успешный список назначений сохраняется на время браузерной сессии; актуальные данные обновляются в фоне раз в пять минут и при открытой панели раз в 30 секунд.
-- Обновлены карточки экспериментов и флагов, светлая и тёмная темы, состояния назначений и кнопка **Leave**.
+- The complete interface now lives in Chrome’s side panel and stays open while you switch tabs or reload the page.
+- Search fields now include a dedicated clear button, so you can reset a filtered experiment or flag list in one click.
+- **Testing IDs** opens as a compact popover above the list. Add up to 20 email, user, or device IDs and independently include or exclude your signed-in account.
+- The last successful assignment snapshot is kept for the browser session. Data refreshes every five minutes in the background and every 30 seconds while the panel is visible.
+- Experiment and flag cards, assignment states, the **Leave** action, and both themes have been redesigned for the resizable panel.
 
-### Что исправлено по обратной связи
+### Fixes from user feedback
 
-- При открытии панели больше не нужно каждый раз ждать полной загрузки каталога: сохранённый список появляется сразу, а проверка актуальности проходит без блокировки интерфейса.
-- Если Amplitude открыта и авторизована в другой вкладке, TestPerch подхватывает её автоматически. При истёкшей сессии сохранённые назначения остаются видимыми в режиме чтения, а **Sign in** и **Reconnect** восстанавливают подключение.
-- Переключатель темы срабатывает сразу; служебная подсказка **How testing works** показывается только в деморежиме; исправлены перекрытия и выравнивание элементов в боковой панели.
+- Opening the panel no longer blocks on a complete catalog request. The saved snapshot appears immediately while freshness is checked quietly.
+- TestPerch automatically adopts another open, authorized Amplitude tab. If the session expires, cached assignments remain visible in read-only mode and **Sign in** or **Reconnect** restores the connection.
+- Theme changes render immediately, **How testing works** appears only in demo mode, and side-panel alignment and overlap issues are fixed.
 
-Эти сценарии покрыты автоматическими тестами и дополнительно проверены в установленной боковой панели Chrome.
+These scenarios are covered by automated tests and were also verified in the installed Chrome side panel.
 
 ## Install
 
@@ -58,7 +59,7 @@ Use the **exit icon** next to the theme button to disconnect from TestPerch. Thi
 
 ## Updates
 
-**Current release: 0.0.3.** Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). Store installations receive 0.0.3 automatically after Google approves the submitted update. Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
+**Current release: 0.0.3.** Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). Store installations receive 0.0.3 automatically after Google approves the submitted update. This revision adds the persistent side panel, cached background sync, the redesigned assignment list, and one-click search clearing. Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
 
 Each published release will include an installable **`testperch-v<version>.zip`** and a SHA-256 checksum.
 

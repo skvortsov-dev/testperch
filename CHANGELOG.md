@@ -14,6 +14,7 @@
 - Open **Testing IDs** in a compact popover anchored to the profile action, and keep **Include my account** visible while adding another identity.
 - Make every theme-button click immediately switch between the rendered light and dark theme; the initial theme still follows the system.
 - Keep **How testing works** in demo mode and simplify the live footer to sync or reconnect status.
+- Add a visible, keyboard-accessible clear button whenever experiment or flag search contains text.
 
 ## 0.0.2.1 — Store listing name
 
