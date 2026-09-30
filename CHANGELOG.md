@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.0.3 — 2026-09-30
+
+- Move the complete TestPerch interface into a persistent, resizable Chrome side panel that stays open across tab switches and page reloads.
+- Show the last successful assignment snapshot immediately when the panel opens.
+- Refresh that snapshot every five minutes in the background while an authorized Amplitude tab is available.
+- Continue background refresh through another authorized Amplitude tab if the original tab closes.
+- Keep large projects responsive by grouping unassigned identities into one **Testing ID** selector per configuration; assigned identities remain separate rows.
+- Skip the catalog request on reopen when a recent snapshot belongs to the same signed-in account.
+- Keep cached results visible but read-only when the Amplitude session expires, with an explicit **Sign in to Amplitude** action; transient API errors use **Reconnect**.
+- Clear the cached catalog and connection metadata on **Disconnect** or when the browser session ends.
+- Redesign the catalog as responsive cards with consistent controls, metadata chips, SVG icons, and balanced light/dark colors.
+- Open **Testing IDs** in a compact popover anchored to the profile action, and keep **Include my account** visible while adding another identity.
+- Make every theme-button click immediately switch between the rendered light and dark theme; the initial theme still follows the system.
+- Keep **How testing works** in demo mode and simplify the live footer to sync or reconnect status.
+
 ## 0.0.2.1 — Store listing name
 
 - Rename the extension to "TestPerch — Testing for Amplitude Experiment & Feature Flags" and tighten the short description so Chrome Web Store search finds it by Amplitude, Experiment, and feature-flag queries. No functional changes.

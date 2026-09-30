@@ -57,7 +57,7 @@ export function enhanceSelect(select) {
 }
 
 export function updateSelects() {
-  document.querySelectorAll("select").forEach(enhanceSelect);
+  document.querySelectorAll("select:not([hidden])").forEach(enhanceSelect);
 }
 
 function openMenu(select, button) {

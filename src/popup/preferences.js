@@ -4,10 +4,11 @@ let theme = "system";
 
 function applyTheme() {
   const dark = theme === "dark" || (theme === "system" && media.matches);
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  const renderedTheme = dark ? "dark" : "light";
+  document.documentElement.dataset.theme = renderedTheme;
   const button = document.getElementById("theme");
-  const label = `Theme: ${theme}. Click to switch.`;
-  button.textContent = theme === "system" ? "◐" : theme === "dark" ? "☾" : "☀";
+  const label = `Theme: ${renderedTheme}. Click to switch to ${dark ? "light" : "dark"}.`;
+  button.dataset.mode = renderedTheme;
   button.title = label;
   button.setAttribute("aria-label", label);
 }
@@ -25,7 +26,7 @@ export async function initializeTheme() {
   applyTheme();
   media.addEventListener("change", applyTheme);
   document.getElementById("theme").onclick = async () => {
-    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     applyTheme();
     if (globalThis.chrome?.storage) await chrome.storage.local.set({ theme });
     else {

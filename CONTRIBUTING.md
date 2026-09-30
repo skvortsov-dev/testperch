@@ -28,12 +28,16 @@ Changes involving testing IDs or assignments must cover, where applicable:
 - stale versions, read-back failures, unavailable variants, and interrupted requests;
 - experiments and feature flags, including custom variant names;
 - archived configurations remaining excluded.
+- cached panel restoration without a catalog request when the snapshot is fresh;
+- background refresh, expired-session read-only behavior, and reconnect recovery;
+- races between background reads and newer panel saves;
+- side panel persistence across tab switches and responsive layout at narrow and wide sizes.
 
 Avoid tests that merely repeat implementation details. Assert the user-visible behavior and the exact request or preserved data when that is part of the contract.
 
 ## UI verification
 
-DOM tests do not prove that the popup fits. Check the actual 480 × 600 Chrome popup in light and dark themes. Exercise open panels and help text, long IDs, 20 IDs, empty results, validation errors, keyboard navigation, focus, and scrolling. Nothing may overlap, clip essential controls, or move outside the popup.
+DOM tests do not prove that the side panel fits. Check the actual Chrome side panel in light and dark themes at widths from 320 to 600 pixels. Switch tabs and reload the inspected page while the panel stays open. Exercise open panels and help text, long IDs, 20 IDs, empty results, validation errors, keyboard navigation, focus, and scrolling. Nothing may overlap, clip essential controls, or move outside the panel.
 
 Include screenshots or a short recording for a visual change. Use fictional data and remove real emails, device IDs, tokens, organization names, and company data.
 

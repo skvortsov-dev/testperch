@@ -15,7 +15,7 @@
             <img src="assets/icon.svg" width="36" height="36" alt="" />
           </span>
           <span
-            >TestPerch <span class="beta">0.0.2</span
+            >TestPerch <span class="beta">0.0.3</span
             ><small>Experiment & flag testing for Amplitude</small></span
           >
         </div>
@@ -46,7 +46,13 @@
             aria-label="Theme: system. Click to switch."
             title="Theme: system. Click to switch."
           >
-            ◐
+            <svg class="theme-symbol theme-light" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3.5"></circle>
+              <path d="M12 2.5v2M12 19.5v2M4.5 12h-2M21.5 12h-2M5.3 5.3 6.7 6.7M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"></path>
+            </svg>
+            <svg class="theme-symbol theme-dark" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 15.2A8.2 8.2 0 0 1 8.8 4a8.3 8.3 0 1 0 11.2 11.2Z"></path>
+            </svg>
           </button>
         </div>
       </header>
@@ -121,11 +127,6 @@
             ></span>
           </div>
           <div id="target-picker" class="target-picker" hidden>
-            <label class="include-me" for="target-include-me">
-              <input id="target-include-me" type="checkbox" checked />
-              <span class="toggle-track" aria-hidden="true"></span>
-              <span>Include me</span>
-            </label>
             <button
               id="target-summary"
               type="button"
@@ -136,7 +137,6 @@
           <section
             id="target-panel"
             class="target-panel"
-            role="dialog"
             aria-labelledby="target-title"
             hidden
           >
@@ -145,15 +145,15 @@
                 <h2 id="target-title">Testing IDs</h2>
                 <span id="target-count"></span>
               </div>
-              <button
-                type="button"
-                id="target-cancel"
-                class="quiet"
-                aria-label="Close testing IDs"
-              >
-                Done
-              </button>
             </div>
+            <label class="include-me" for="target-include-me">
+              <span class="include-me-copy">
+                <strong>Include my account</strong>
+                <small id="target-own-id"></small>
+              </span>
+              <input id="target-include-me" type="checkbox" checked />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
             <form id="target-form">
               <label for="target-input">Email or device ID</label>
               <div class="target-input-row">
@@ -171,7 +171,7 @@
                   Add
                 </button>
               </div>
-              <p id="target-help">Add one ID at a time. Press Enter or Add.</p>
+              <p id="target-help">Press Enter or Add.</p>
               <p id="target-error" class="target-error" role="alert" hidden></p>
             </form>
             <div
@@ -179,9 +179,8 @@
               class="target-chips"
               aria-label="Additional testing IDs"
             ></div>
-            <p id="target-empty">No additional IDs yet.</p>
-            <p class="target-footnote">
-              Removing an ID here only hides it from this view.
+            <p id="target-footnote" class="target-footnote" hidden>
+              Removing an ID keeps its test assignments.
             </p>
           </section>
           <label class="eyebrow" for="project">PROJECT</label>
@@ -213,7 +212,10 @@
             aria-label="Refresh assignments"
             title="Refresh assignments"
           >
-            ↻
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.3 5.7"></path>
+              <path d="M20 4v7h-7"></path>
+            </svg>
           </button>
         </div>
         <div class="search-tools">
@@ -268,19 +270,21 @@
       ></div>
       <div id="errors" class="error" role="alert" hidden></div>
       <footer>
-        <details>
+        <details id="testing-help" hidden>
           <summary>How testing works</summary>
           <p>
             Assigning a variant changes only one selected ID’s Testing
             assignment. Leaving a test restores normal targeting, including any
-            100% rollout. Keep this popup open until the save finishes.
+            100% rollout. Keep this panel open until the save finishes.
           </p>
         </details>
         <span
           id="sync-state"
-          title="Refreshes every 30 seconds while open. Editing pauses updates."
+          title="Refreshes in the background and every 30 seconds while open."
           >Independent tool for Amplitude</span
-        >
+        ><button id="reconnect" class="quiet sync-button" hidden>
+          Reconnect
+        </button>
       </footer>
     </main>
 
@@ -295,10 +299,11 @@
         </div>
         <form class="variant-editor">
           <p class="assignment-target" hidden></p>
+          <select class="assignment-target-select" hidden></select>
           <div class="variant-row">
             <select class="variant-select" required></select>
             <button type="button" class="leave-button danger">
-              Leave test
+              Leave
             </button>
           </div>
           <div class="editor-actions" hidden>

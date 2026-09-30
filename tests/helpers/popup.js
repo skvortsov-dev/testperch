@@ -51,6 +51,10 @@ export function fixture() {
     session: {},
     fail: null,
     ignoreWrites: false,
+    focusedTab: null,
+    openedUrl: null,
+    tabs: [{ id: 7, title: "Amplitude", active: true, windowId: 1 }],
+    failSnapshotWrite: false,
   };
 }
 
@@ -84,9 +88,17 @@ export async function popup(t, backend = fixture()) {
     },
   ];
   const intervals = new Map();
-  const storage = (data) => ({
+  const storage = (data, area) => ({
     get: async (key) => ({ [key]: structuredClone(data[key]) }),
-    set: async (values) => Object.assign(data, structuredClone(values)),
+    set: async (values) => {
+      if (
+        area === "session" &&
+        backend.failSnapshotWrite &&
+        Object.hasOwn(values, "catalogSnapshot")
+      )
+        throw Error("Session storage quota exceeded");
+      Object.assign(data, structuredClone(values));
+    },
     remove: async (keys) => {
       for (const key of Array.isArray(keys) ? keys : [keys]) delete data[key];
     },
@@ -104,12 +116,19 @@ export async function popup(t, backend = fixture()) {
     },
     chrome: {
       storage: {
-        local: storage(backend.local),
-        session: storage(backend.session),
+        local: storage(backend.local, "local"),
+        session: storage(backend.session, "session"),
       },
       tabs: {
-        query: async () => [{ id: 7, title: "Amplitude", active: true }],
+        query: async () => structuredClone(backend.tabs),
+        update: async (id) => {
+          backend.focusedTab = id;
+        },
+        create: async ({ url }) => {
+          backend.openedUrl = url;
+        },
       },
+      windows: { update: async () => {} },
       scripting: {
         executeScript: async ({ func, args }) => [
           { result: await func(...args) },
@@ -193,15 +212,15 @@ export async function popup(t, backend = fixture()) {
     await settle();
   };
   const custom = async (value, { includeMe = false } = {}) => {
-    if (!$("#target-picker").hidden && $("#target-include-me").checked !== includeMe)
-      await click("#target-include-me");
     if ($("#target-panel").hidden) await click("#target-add");
+    if ($("#target-include-me").checked !== includeMe)
+      await click("#target-include-me");
     $("#target-input").value = value.replace(/[\r\n]+/g, ",");
     $("#target-form").dispatchEvent(
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await settle();
-    if (!$("#target-picker").hidden && $("#target-include-me").checked !== includeMe)
+    if ($("#target-include-me").checked !== includeMe)
       await click("#target-include-me");
   };
   const row = (name, target) => {
@@ -209,13 +228,22 @@ export async function popup(t, backend = fixture()) {
       (c) => c.querySelector(".card-title").textContent === name,
     );
     return [...(card?.querySelectorAll("form") || [])].find(
-      (f) => f.querySelector(".assignment-target").textContent === target,
+      (f) =>
+        f.querySelector(".assignment-target").textContent === target ||
+        [...f.querySelector(".assignment-target-select").options].some(
+          (option) => option.value === target,
+        ),
     );
   };
   const change = async (name, target, key) => {
     const form = row(name, target);
     assert.ok(form, `${name}: ${target}`);
-    const select = form.querySelector("select");
+    const targetSelect = form.querySelector(".assignment-target-select");
+    if (!targetSelect.hidden) {
+      targetSelect.value = target;
+      targetSelect.dispatchEvent(new window.Event("change", { bubbles: true }));
+    }
+    const select = form.querySelector(".variant-select");
     select.value = key;
     select.dispatchEvent(new window.Event("change", { bubbles: true }));
     form.dispatchEvent(

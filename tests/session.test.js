@@ -302,7 +302,10 @@ test("null inclusions is an empty assignment list, missing field is not", async 
 
 test("session readiness probe never calls the API and handles signed-out users", async () => {
   const { run, org } = harness(() => assert.fail("Probe must not fetch"));
-  assert.equal((await run("probe")).ready, true);
+  const ready = await run("probe");
+  assert.equal(ready.ready, true);
+  assert.equal(ready.user, org.user);
+  assert.equal(ready.orgId, String(org.orgId));
   org.isLoggedIn = false;
   const result = await run("probe");
   assert.equal(result.ok, true);

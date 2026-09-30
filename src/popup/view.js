@@ -26,7 +26,9 @@ export function showAccount(account, demo) {
   element("dashboard").hidden = false;
   element("disconnect").hidden = false;
   element("demo-banner").hidden = !demo;
+  element("testing-help").hidden = !demo;
   element("account-email").textContent = account.user;
+  element("target-own-id").textContent = account.user;
   element("organization").textContent = account.orgUrl;
   element("avatar").textContent = account.user.slice(0, 1).toUpperCase();
   element("project").replaceChildren(
@@ -41,6 +43,7 @@ export function renderCatalog(state, handlers) {
   closeSelectMenu();
   const scrollTop = element("catalog").scrollTop;
   const custom = isCustomTarget(state.targets, state.account?.user);
+  const mutable = Boolean(state.demo) || state.live !== false;
   const items = !state.targets.length
     ? []
     : filterCatalog(state.catalog, state);
@@ -97,35 +100,71 @@ export function renderCatalog(state, handlers) {
     const card =
       element("card-template").content.firstElementChild.cloneNode(true);
     const experiment = isExperiment(item);
-    card.querySelector(".type-icon").textContent = experiment ? "A/B" : "⚑";
+    card.querySelector(".type-icon").textContent = experiment ? "A/B" : "FLAG";
     const title = card.querySelector(".card-title");
     title.textContent = item.name;
     title.title = item.key || item.name;
-    card.querySelector(".card-meta").textContent = [
-      experiment ? "Experiment" : "Feature flag",
-      ...item.deployments,
-    ].join(" · ");
+    const meta = card.querySelector(".card-meta");
+    meta.replaceChildren(
+      ...[experiment ? "Experiment" : "Feature flag", ...item.deployments].map(
+        (value, index) => {
+          const chip = document.createElement("span");
+          chip.className = index === 0 ? "meta-chip meta-kind" : "meta-chip";
+          chip.textContent = value;
+          return chip;
+        },
+      ),
+    );
     const formTemplate = card.querySelector("form");
     formTemplate.remove();
-    for (const membership of item.memberships) {
+    const assignedMemberships = item.memberships.filter(
+      (membership) => membership.variants.length > 0,
+    );
+    const unassignedMemberships = item.memberships.filter(
+      (membership) => membership.variants.length === 0,
+    );
+    const visibleMemberships =
+      state.scope === "mine"
+        ? assignedMemberships
+        : [
+            ...assignedMemberships,
+            ...(unassignedMemberships.length ? [unassignedMemberships[0]] : []),
+          ];
+    for (const membership of visibleMemberships) {
       const { target, variants } = membership;
       const assigned = variants.length > 0;
-      // My/Assigned tests shows only memberships; Find tests also offers unassigned IDs.
-      if (state.scope === "mine" && !assigned) continue;
       const form = formTemplate.cloneNode(true);
       const targetLabel = form.querySelector(".assignment-target");
       targetLabel.hidden = !custom;
       targetLabel.textContent = target;
+      const targetSelect = form.querySelector(".assignment-target-select");
+      const groupedTargets =
+        state.scope === "all" && !assigned && unassignedMemberships.length > 1
+          ? unassignedMemberships.map((entry) => entry.target)
+          : [];
+      if (groupedTargets.length) {
+        targetLabel.textContent = "Testing ID";
+        targetSelect.hidden = false;
+        targetSelect.setAttribute("aria-label", `Testing ID for ${item.name}`);
+        targetSelect.replaceChildren(
+          ...groupedTargets.map((id) => new Option(id, id)),
+        );
+      }
+      const selectedTarget = () =>
+        groupedTargets.length ? targetSelect.value : target;
       const leave = form.querySelector(".leave-button");
       leave.hidden = !assigned;
+      leave.dataset.unavailable = String(!mutable);
       leave.setAttribute("aria-label", `Remove ${target} from ${item.name}`);
       leave.title = `Remove only ${target} from this test`;
       leave.onclick = () => handlers.change(item, null, target);
       const select = form.querySelector(".variant-select");
-      select.setAttribute(
-        "aria-label",
-        `Test variant for ${item.name}, ${target}`,
-      );
+      select.dataset.unavailable = String(!mutable);
+      const updateTargetLabels = () => {
+        const id = selectedTarget();
+        select.setAttribute("aria-label", `Test variant for ${item.name}, ${id}`);
+        save.title = `Assign only ${id} to the selected variant`;
+      };
       select.append(
         new Option("Choose a test variant…", ""),
         ...item.availableVariants.map((v) => new Option(v.name, v.key)),
@@ -137,13 +176,12 @@ export function renderCatalog(state, handlers) {
         : custom
           ? "Add to test"
           : "Add me to test";
-      save.title = `Assign only ${target} to the selected variant`;
       const note = form.querySelector(".editor-note");
       note.textContent = custom ? "Only this ID" : "Only your assignment";
       function updateSave() {
         const unchanged =
           variants.length === 1 && variants[0].key === select.value;
-        save.dataset.unavailable = String(!select.value || unchanged);
+        save.dataset.unavailable = String(!mutable || !select.value || unchanged);
         save.disabled = state.busy || save.dataset.unavailable === "true";
         form.querySelector(".editor-actions").hidden =
           !select.value || unchanged;
@@ -151,6 +189,8 @@ export function renderCatalog(state, handlers) {
         form.classList.toggle("assigned", assigned);
       }
       updateSave();
+      updateTargetLabels();
+      targetSelect.onchange = updateTargetLabels;
       select.onchange = () => {
         updateSave();
         handlers.pending(
@@ -159,7 +199,8 @@ export function renderCatalog(state, handlers) {
       };
       form.onsubmit = (event) => {
         event.preventDefault();
-        if (!save.disabled) handlers.change(item, select.value, target);
+        if (!save.disabled)
+          handlers.change(item, select.value, selectedTarget());
       };
       form.querySelector(".cancel-button").onclick = () => handlers.edit(null);
       card.append(form);

@@ -16,6 +16,19 @@ test(
   options,
   async (t) => {
     const p = await popup(t);
+    assert.equal(p.$("#testing-help").hidden, true);
+    assert.deepEqual(
+      [
+        ...p.window.document.querySelectorAll(
+          ".test-card:first-child .meta-chip",
+        ),
+      ].map((chip) => chip.textContent),
+      ["Experiment", "development"],
+    );
+    assert.equal(
+      p.window.document.querySelector(".leave-button").textContent.trim(),
+      "Leave",
+    );
     assert.equal(p.$("#mine-count").textContent, "2");
     await p.custom(`${alias}\n${second},${device},${alias}`);
     assert.equal(p.$("#mine-label").textContent, "Assigned tests");
@@ -33,6 +46,12 @@ test(
     assert.ok(p.row("Checkout", alias));
     assert.ok(p.row("Checkout", second));
     assert.ok(p.row("Search flag", device));
+    assert.equal(
+      [...p.window.document.querySelectorAll(".assignment-target-select[hidden]")].some(
+        (select) => select.nextElementSibling?.classList.contains("select-trigger"),
+      ),
+      false,
+    );
   },
 );
 test(
@@ -85,7 +104,7 @@ test(
     assert.equal(p.$("#target-error").hidden, false);
     assert.equal(p.$("#target-input").getAttribute("aria-invalid"), "true");
     assert.equal(p.window.document.querySelectorAll(".test-card").length, 2);
-    await p.click("#target-cancel");
+    await p.click("#target-add");
     assert.equal(p.$("#mine-count").textContent, "2");
     await p.custom(" , ;\n ");
     assert.equal(p.$("#target-error").hidden, false);
@@ -151,6 +170,180 @@ test(
   },
 );
 test(
+  "full popup: paints the last snapshot immediately and replaces it after a quiet refresh",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    await p.custom(alias);
+    assert.equal(p.$("#mine-count").textContent, "1");
+    await p.close();
+
+    backend.flags[1].inclusionsMap.on.push(alias);
+    backend.session.catalogSnapshot.updatedAt = Date.now() - 6 * 60 * 1000;
+    let release;
+    backend.waitScan = new Promise((resolve) => {
+      release = resolve;
+    });
+    p = await popup(t, backend);
+    assert.equal(p.$("#dashboard").hidden, false);
+    assert.equal(p.$("#welcome").hidden, true);
+    assert.equal(p.$("#mine-count").textContent, "1");
+    assert.ok(p.row("Checkout", alias));
+    assert.match(p.$("#sync-state").textContent, /Updating|Last synced/);
+
+    release();
+    await settle();
+    assert.equal(p.$("#mine-count").textContent, "2");
+    assert.ok(p.row("Search flag", alias));
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+    assert.equal(backend.session.catalogSnapshot.catalog.length, 3);
+  },
+);
+test(
+  "full popup: a fresh background snapshot avoids a catalog request on reopen",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    const requests = backend.requests.length;
+    await p.close();
+
+    p = await popup(t, backend);
+    assert.equal(backend.requests.length, requests);
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+    assert.equal(p.row("Checkout", actor).querySelector(".variant-select").disabled, false);
+  },
+);
+test(
+  "full popup: expired auth keeps cached results read-only and offers a working reconnect",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    await p.close();
+    backend.org.isLoggedIn = false;
+
+    p = await popup(t, backend);
+    assert.equal(p.$("#dashboard").hidden, false);
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#reconnect").hidden, false);
+    assert.equal(p.$("#reconnect").textContent, "Sign in to Amplitude ↗");
+    assert.match(p.$("#errors").textContent, /Open Amplitude.*reopen TestPerch/);
+    assert.equal(p.row("Checkout", actor).querySelector(".variant-select").disabled, true);
+    assert.equal(
+      p.row("Checkout", actor).querySelector(".leave-button").disabled,
+      true,
+    );
+    assert.equal(p.$("#project").disabled, true);
+    assert.equal(p.$("#target-add").disabled, true);
+    const signedOutRequests = backend.requests.length;
+    await p.intervals.get(30000)();
+    assert.equal(backend.requests.length, signedOutRequests);
+    await p.click("#reconnect");
+    assert.equal(backend.focusedTab, 7);
+    assert.equal(backend.writes.length, 0);
+
+    backend.org.isLoggedIn = true;
+    await p.click("#reconnect");
+    assert.equal(p.$("#reconnect").hidden, true);
+    assert.equal(p.row("Checkout", actor).querySelector(".variant-select").disabled, false);
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+  },
+);
+test(
+  "full popup: failed manual refresh preserves rows and requires a verified retry",
+  options,
+  async (t) => {
+    const backend = fixture();
+    const p = await popup(t, backend);
+    backend.fail = "403";
+    await p.click("#refresh");
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#reconnect").hidden, false);
+    assert.equal(p.$("#reconnect").textContent, "Reconnect");
+    assert.match(p.$("#errors").textContent, /Reconnect to try again/);
+    assert.equal(p.row("Checkout", actor).querySelector(".variant-select").disabled, true);
+    const requests = backend.requests.length;
+    await p.click("#reconnect");
+    assert.ok(backend.requests.length > requests);
+    assert.equal(backend.focusedTab, null);
+    assert.equal(backend.openedUrl, null);
+    assert.equal(p.$("#reconnect").hidden, false);
+    assert.ok(p.row("Checkout", actor));
+  },
+);
+test(
+  "full popup: missing Amplitude tab keeps the cache and sign-in opens a new tab",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    await p.close();
+    backend.tabs = [];
+
+    p = await popup(t, backend);
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#reconnect").textContent, "Sign in to Amplitude ↗");
+    assert.equal(p.row("Checkout", actor).querySelector(".variant-select").disabled, true);
+    await p.click("#reconnect");
+    assert.equal(backend.openedUrl, "https://app.amplitude.com/");
+    assert.equal(backend.focusedTab, null);
+  },
+);
+test(
+  "full popup: a replacement Amplitude tab reuses fresh cache and updates its tab ID",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    const requests = backend.requests.length;
+    await p.close();
+    backend.tabs = [
+      { id: 19, title: "Amplitude Experiment", active: true, windowId: 2 },
+    ];
+
+    p = await popup(t, backend);
+    assert.equal(backend.requests.length, requests);
+    assert.equal(backend.session.connection.tabId, 19);
+    assert.equal(backend.session.catalogSnapshot.tabId, 19);
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+    assert.ok(p.row("Checkout", actor));
+  },
+);
+test(
+  "full popup: corrupt cache is ignored and rebuilt from the live Amplitude session",
+  options,
+  async (t) => {
+    const backend = fixture();
+    backend.session.catalogSnapshot = {
+      account: { user: actor },
+      catalog: "not-an-array",
+      updatedAt: "invalid",
+    };
+    const p = await popup(t, backend);
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+    assert.ok(Array.isArray(backend.session.catalogSnapshot.catalog));
+  },
+);
+test(
+  "full popup: snapshot storage failure does not break live reads or assignments",
+  options,
+  async (t) => {
+    const backend = fixture();
+    backend.failSnapshotWrite = true;
+    const p = await popup(t, backend);
+    assert.ok(p.row("Checkout", actor));
+    assert.equal(p.$("#sync-state").textContent, "Auto-sync on");
+    await p.change("Checkout", actor, "express");
+    assert.equal(backend.writes.length, 1);
+    assert.deepEqual(backend.flags[0].inclusionsMap.express, [actor]);
+    assert.equal(p.$("#errors").hidden, true);
+  },
+);
+test(
   "full popup: disconnect clears custom IDs and keeps auto-connect paused after reopen",
   options,
   async (t) => {
@@ -159,6 +352,7 @@ test(
     await p.custom(alias);
     await p.click("#disconnect");
     assert.equal(backend.session.connection, undefined);
+    assert.equal(backend.session.catalogSnapshot, undefined);
     assert.equal(backend.local.autoConnect, false);
     assert.equal(p.$("#target-input").value, "");
     assert.equal(p.$("#target-value").textContent, "");
@@ -190,15 +384,15 @@ test(
     const p = await popup(t);
     await p.custom(alias);
     p.backend.flags[1].inclusionsMap.on.push(alias);
-    await p.click("#target-cancel");
+    await p.click("#target-add");
     await p.intervals.get(30000)();
     assert.equal(p.$("#mine-count").textContent, "2");
     await p.click("#target-add");
     let requests = p.backend.requests.length;
     await p.intervals.get(30000)();
     assert.equal(p.backend.requests.length, requests);
-    await p.click("#target-cancel");
-    const select = p.row("Checkout", alias).querySelector("select");
+    await p.click("#target-add");
+    const select = p.row("Checkout", alias).querySelector(".variant-select");
     select.value = "express";
     select.dispatchEvent(new p.window.Event("change"));
     requests = p.backend.requests.length;
@@ -283,13 +477,15 @@ test(
     assert.equal(p.$("#target-include-me").disabled, false);
     p.$("#target-input").value = `${alias},${device}`;
     await p.click("#target-apply");
-    assert.equal(p.$("#target-picker").hidden, false);
+    assert.equal(p.$("#target-picker").hidden, true);
     assert.deepEqual(p.backend.session.connection.targets, [
       actor,
       alias,
       device,
     ]);
     assert.equal(p.$("#target-include-me").disabled, false);
+    await p.click("#target-add");
+    assert.equal(p.$("#target-picker").hidden, false);
     const before = structuredClone(p.backend.flags);
     await p.click(".target-chip button");
     assert.deepEqual(p.backend.session.connection.targets, [actor, device]);
@@ -305,6 +501,7 @@ test(
     const backend = fixture();
     let p = await popup(t, backend);
     await p.custom(alias);
+    await p.click("#target-add");
     assert.equal(p.$("#target-picker").hidden, false);
     assert.equal(p.$("#target-include-me").checked, false);
     await p.click(".target-chip button");
@@ -428,13 +625,19 @@ test(
 );
 
 test(
-  "ID panel: opening preserves results and keeps Include me hidden until another ID is added",
+  "ID panel: opens below the profile and shows Include me before another ID is added",
   options,
   async (t) => {
     const p = await popup(t);
     await p.click("#target-add");
     assert.equal(p.$("#target-panel").hidden, false);
     assert.equal(p.$("#target-picker").hidden, true);
+    assert.equal(
+      p.$("#target-panel").contains(p.$("#target-include-me")),
+      true,
+    );
+    assert.equal(p.$("#target-panel").getAttribute("role"), null);
+    assert.equal(p.$("#target-own-id").textContent, actor);
     assert.equal(p.$("#mine-count").textContent, "2");
     assert.ok(p.row("Checkout", actor));
     assert.equal(p.$("#target-include-me").disabled, false);
@@ -542,13 +745,13 @@ test(
   options,
   async (t) => {
     const p = await popup(t);
-    const select = p.row("Checkout", actor).querySelector("select");
+    const select = p.row("Checkout", actor).querySelector(".variant-select");
     select.value = "express";
     select.dispatchEvent(new p.window.Event("change"));
     await p.click("#target-add");
-    await p.click("#target-cancel");
+    await p.click("#target-add");
     assert.equal(
-      p.row("Checkout", actor).querySelector("select").value,
+      p.row("Checkout", actor).querySelector(".variant-select").value,
       "express",
     );
     assert.equal(
@@ -558,5 +761,96 @@ test(
     const calls = p.backend.requests.length;
     await p.intervals.get(30000)();
     assert.equal(p.backend.requests.length, calls);
+  },
+);
+
+test(
+  "side panel: 141 configurations and 20 selected IDs render without losing controls",
+  options,
+  async (t) => {
+    const backend = fixture();
+    const template = backend.flags.find((flag) => flag.id === "102");
+    backend.flags = Array.from({ length: 141 }, (_, index) => ({
+      ...structuredClone(template),
+      id: String(1000 + index),
+      name: `Configuration ${index + 1}`,
+      key: `configuration-${index + 1}`,
+      type: index % 2 ? "release" : "experiment",
+      inclusionsMap: {},
+    }));
+    const p = await popup(t, backend);
+    const ids = Array.from({ length: 20 }, (_, index) => `load-device-${index}`);
+    await p.custom(ids[0]);
+    await p.custom(ids.slice(1).join(","));
+    assert.deepEqual(p.backend.session.connection.targets, ids);
+    await p.click("#explore");
+    assert.equal(p.window.document.querySelectorAll(".test-card").length, 141);
+    assert.equal(p.window.document.querySelectorAll(".variant-editor").length, 141);
+    assert.equal(p.$("#result-count").textContent, "141 results");
+    assert.equal(p.window.document.querySelectorAll(".save-button").length, 141);
+    assert.equal(
+      p.window.document.querySelectorAll(
+        ".assignment-target-select:not([hidden]) option",
+      ).length,
+      141 * 20,
+    );
+    await p.change("Configuration 1", ids[19], "on");
+    assert.deepEqual(p.backend.flags[0].inclusionsMap, { on: [ids[19]] });
+    assert.equal(p.backend.writes.length, 1);
+  },
+);
+
+test(
+  "side panel: assigned IDs stay explicit while unassigned IDs share one picker",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    await p.custom(`${alias},fresh-a,fresh-b`);
+    await p.click("#explore");
+    const card = p.row("Checkout", alias).closest(".test-card");
+    assert.equal(card.querySelectorAll(".variant-editor").length, 2);
+    const picker = card.querySelector(".assignment-target-select:not([hidden])");
+    assert.deepEqual(
+      [...picker.options].map((option) => option.value),
+      ["fresh-a", "fresh-b"],
+    );
+    await p.change("Checkout", "fresh-b", "express");
+    assert.deepEqual(p.backend.flags[0].inclusionsMap, {
+      on: [actor, alias, "unrelated"],
+      off: [second],
+      express: ["fresh-b"],
+    });
+  },
+);
+
+test(
+  "side panel: testing help is limited to demo mode",
+  options,
+  async (t) => {
+    const backend = fixture();
+    backend.tabs = [];
+    const p = await popup(t, backend);
+    assert.equal(p.$("#testing-help").hidden, true);
+    await p.click("#demo");
+    assert.equal(p.$("#testing-help").hidden, false);
+    await p.click("#exit-demo");
+    assert.equal(p.$("#testing-help").hidden, true);
+  },
+);
+
+test(
+  "side panel: every theme click immediately changes the rendered theme",
+  options,
+  async (t) => {
+    const backend = fixture();
+    backend.tabs = [];
+    const p = await popup(t, backend);
+    assert.equal(p.window.document.documentElement.dataset.theme, "light");
+    await p.click("#theme");
+    assert.equal(p.window.document.documentElement.dataset.theme, "dark");
+    assert.equal(p.backend.local.theme, "dark");
+    await p.click("#theme");
+    assert.equal(p.window.document.documentElement.dataset.theme, "light");
+    assert.equal(p.backend.local.theme, "light");
   },
 );

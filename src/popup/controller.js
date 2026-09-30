@@ -19,6 +19,11 @@ import {
 } from "./bridge.js";
 import { createDemo } from "./demo.js";
 import {
+  getCatalogSnapshot,
+  rememberCatalogSnapshot,
+  forgetCatalogSnapshot,
+} from "../cache.js";
+import {
   element,
   renderCatalog,
   setBusy,
@@ -39,7 +44,12 @@ const state = {
   autoConnect: true,
   targets: [],
   targetEditing: false,
+  live: false,
+  cachedAt: null,
+  forceRefresh: false,
+  needsSignIn: false,
 };
+const FRESH_SNAPSHOT_MS = 5 * 60 * 1000;
 
 function context() {
   return {
@@ -53,7 +63,18 @@ function context() {
 function renderTargets() {
   const ownEmail = state.account?.user;
   const additional = state.targets.filter((target) => target !== ownEmail);
-  element("target-picker").hidden = additional.length === 0;
+  const readOnly = !state.demo && !state.live;
+  for (const id of [
+    "target-add",
+    "target-summary",
+    "target-include-me",
+    "target-input",
+    "target-apply",
+    "project",
+  ])
+    element(id).dataset.unavailable = String(readOnly);
+  element("target-picker").hidden =
+    additional.length === 0 || state.targetEditing;
   element("target-include-me").checked = state.targets.includes(ownEmail);
 
   element("target-add").setAttribute(
@@ -66,7 +87,7 @@ function renderTargets() {
   element("target-count").textContent =
     `${state.targets.length} of 20 selected${state.targets.includes(ownEmail) ? " · including you" : ""}`;
   element("target-panel").hidden = !state.targetEditing;
-  element("target-empty").hidden = additional.length > 0;
+  element("target-footnote").hidden = additional.length === 0;
   element("target-value").replaceChildren(
     ...additional.map((target) => {
       const chip = document.createElement("span");
@@ -119,9 +140,9 @@ async function withBusy(message, action) {
   }
 }
 
-async function loadCatalog({ silent = false } = {}) {
+async function loadCatalog({ silent = false, clear = false } = {}) {
   if (!silent) {
-    state.catalog = [];
+    if (clear) state.catalog = [];
     state.editing = null;
     render();
     element("empty").hidden = true;
@@ -135,6 +156,7 @@ async function loadCatalog({ silent = false } = {}) {
         orgId: state.account.orgId,
         targets: [],
       });
+    if (!state.demo) await saveSnapshot();
     showMessage();
     element("sync-state").textContent = "No testing IDs selected";
     return true;
@@ -156,6 +178,7 @@ async function loadCatalog({ silent = false } = {}) {
       orgId: state.account.orgId,
       targets: state.targets,
     });
+  if (!state.demo) await saveSnapshot();
   if (data.failures.length) {
     showMessage(
       "",
@@ -165,7 +188,92 @@ async function loadCatalog({ silent = false } = {}) {
   }
   if (!silent || !element("errors").hidden) showMessage();
   element("sync-state").textContent = state.demo ? "Demo data" : "Auto-sync on";
+  element("reconnect").hidden = true;
+  state.forceRefresh = false;
+  state.needsSignIn = false;
   return true;
+}
+
+async function saveSnapshot() {
+  const updatedAt = Date.now();
+  try {
+    await persistSnapshot(updatedAt);
+    state.cachedAt = updatedAt;
+  } catch {
+    // Session storage is a performance optimization. A quota or browser
+    // storage failure must not turn a successful Amplitude read into an error.
+  }
+}
+
+async function persistSnapshot(updatedAt) {
+  await rememberCatalogSnapshot({
+    tabId: state.tabId,
+    account: state.account,
+    project: element("project").value,
+    targets: state.targets,
+    catalog: state.catalog,
+    updatedAt,
+  });
+}
+
+function cacheAge(updatedAt) {
+  const minutes = Math.max(0, Math.floor((Date.now() - updatedAt) / 60000));
+  if (minutes < 1) return "just now";
+  if (minutes === 1) return "1 min ago";
+  return `${minutes} min ago`;
+}
+
+async function restoreSnapshot() {
+  const snapshot = await getCatalogSnapshot();
+  if (!snapshot) return false;
+  state.account = snapshot.account;
+  state.tabId = snapshot.tabId;
+  state.catalog = snapshot.catalog;
+  state.targets = snapshot.targets;
+  state.cachedAt = snapshot.updatedAt;
+  state.live = false;
+  state.forceRefresh = false;
+  state.needsSignIn = false;
+  state.scope = "mine";
+  state.kind = "all";
+  state.query = "";
+  showAccount(state.account, false);
+  if (state.account.projects.some((project) => project.id === snapshot.project))
+    element("project").value = snapshot.project;
+  updateSelects();
+  render();
+  element("sync-state").textContent = `Last synced ${cacheAge(snapshot.updatedAt)}`;
+  return true;
+}
+
+function showReconnect(
+  message = "Amplitude session unavailable.",
+  { forceRefresh = false, needsSignIn = false } = {},
+) {
+  state.live = false;
+  state.forceRefresh ||= forceRefresh;
+  state.needsSignIn = needsSignIn;
+  const reconnect = element("reconnect");
+  reconnect.hidden = false;
+  reconnect.textContent = needsSignIn
+    ? "Sign in to Amplitude ↗"
+    : "Reconnect";
+  reconnect.title = needsSignIn
+    ? "Open Amplitude to sign in"
+    : "Retry the Amplitude connection";
+  reconnect.setAttribute("aria-label", reconnect.title);
+  element("sync-state").textContent = state.cachedAt
+    ? `Last synced ${cacheAge(state.cachedAt)}`
+    : "Sync paused";
+  showMessage(
+    "",
+    `${message} ${
+      needsSignIn
+        ? "Open Amplitude to sign in, then reopen TestPerch."
+        : "Choose Reconnect to try again."
+    }`,
+  );
+  if (state.account) render();
 }
 
 function displayAccount() {
@@ -180,6 +288,10 @@ function displayAccount() {
 }
 
 async function changeAssignment(item, key, target) {
+  if (!state.demo && !state.live) {
+    showReconnect("Reconnect before changing a testing assignment.");
+    return;
+  }
   await withBusy("Saving… Keep this window open.", async () => {
     if (state.demo)
       state.demo.change(element("project").value, item.id, key, target);
@@ -208,6 +320,7 @@ async function disconnect() {
   await withBusy("Disconnecting…", async () => {
     await setAutoConnectEnabled(false);
     await forgetConnection();
+    await forgetCatalogSnapshot();
     state.account = null;
     state.tabId = null;
     state.demo = null;
@@ -215,6 +328,10 @@ async function disconnect() {
     state.editing = null;
     state.targets = [];
     state.targetEditing = false;
+    state.live = false;
+    state.cachedAt = null;
+    state.forceRefresh = false;
+    state.needsSignIn = false;
     element("target-input").value = "";
     element("target-value").textContent = "";
     element("results").replaceChildren();
@@ -223,7 +340,9 @@ async function disconnect() {
     element("project").replaceChildren();
     element("dashboard").hidden = true;
     element("demo-banner").hidden = true;
+    element("testing-help").hidden = true;
     element("disconnect").hidden = true;
+    element("reconnect").hidden = true;
     element("welcome").hidden = false;
     element("sync-state").textContent = "Disconnected";
     element("connection-note").textContent = "Automatic connection is paused.";
@@ -239,16 +358,34 @@ function setScope(scope) {
   render();
 }
 
-async function connectSession(tabId, saved) {
+async function connectSession(tabId, saved, { preserveCatalog = false } = {}) {
   state.tabId = tabId;
   state.demo = null;
-  state.account = await requestSession(tabId, "connect");
-  displayAccount();
+  const previous = state.account;
+  const account = await requestSession(tabId, "connect");
+  const sameAccount =
+    previous?.user === account.user &&
+    String(previous?.orgId) === String(account.orgId);
+  state.account = account;
+  if (!preserveCatalog || !sameAccount) {
+    state.catalog = [];
+    displayAccount();
+  } else showAccount(state.account, false);
   state.targets = restoredTargets(saved, state.account);
   if (saved && state.account.projects.some((p) => p.id === saved.project))
     element("project").value = saved.project;
   updateSelects();
-  await loadCatalog();
+  state.live = true;
+  try {
+    await loadCatalog({ silent: preserveCatalog && sameAccount });
+  } catch (error) {
+    state.live = false;
+    render();
+    throw error;
+  }
+  // A successful refresh can return the same catalog. Re-render anyway so a
+  // restored read-only snapshot becomes interactive only after verification.
+  if (preserveCatalog && sameAccount) render();
   if (state.account.failures.length)
     showMessage(
       "",
@@ -273,7 +410,7 @@ async function selectTargets(targets) {
     state.targets = targets.length ? targets : [state.account.user];
     state.query = "";
     element("search").value = "";
-    await loadCatalog();
+    await loadCatalog({ clear: true });
   });
 }
 
@@ -302,7 +439,6 @@ function closeTargets() {
   renderTargets();
   element("target-add").focus();
 }
-element("target-cancel").onclick = closeTargets;
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && state.targetEditing) {
     event.preventDefault();
@@ -387,6 +523,7 @@ element("demo").onclick = () =>
   withBusy("", async () => {
     state.demo = createDemo();
     state.account = state.demo.account;
+    state.live = true;
     displayAccount();
     await loadCatalog();
   });
@@ -402,12 +539,23 @@ element("open").onclick = () =>
 element("mine").onclick = () => setScope("mine");
 element("explore").onclick = () => setScope("all");
 element("browse").onclick = () => setScope("all");
+async function refreshCatalog() {
+  try {
+    await loadCatalog();
+  } catch (error) {
+    showReconnect(`Could not refresh. ${error.message}`, {
+      forceRefresh: true,
+    });
+  }
+}
 element("refresh").onclick = () =>
-  withBusy("Refreshing your tests…", () => loadCatalog());
+  state.live
+    ? withBusy("Refreshing your tests…", refreshCatalog)
+    : reconnect();
 element("project").onchange = () => {
   state.query = "";
   element("search").value = "";
-  withBusy("Loading this project…", () => loadCatalog());
+  withBusy("Loading this project…", () => loadCatalog({ clear: true }));
 };
 element("kind").onchange = () => {
   state.kind = element("kind").value;
@@ -454,36 +602,87 @@ async function tryAutoConnect() {
   if (
     !extensionAvailable ||
     !state.autoConnect ||
-    state.account ||
+    state.live ||
     state.demo ||
     state.busy ||
     document.hidden ||
     isSelectMenuOpen()
   )
-    return;
+    return false;
+  const preserving = Boolean(state.account);
   state.busy = true;
   try {
     const tabs = await listAmplitudeTabs();
     renderTabs(tabs);
     const saved = await getConnection();
     const tabId = await findReadySession(tabs, saved, requestSession);
-    if (tabId === null) return;
-    setBusy(true);
-    showMessage("Syncing your tests…");
-    await connectSession(tabId, saved);
+    if (tabId === null) {
+      if (preserving) showReconnect(undefined, { needsSignIn: true });
+      return false;
+    }
+    if (
+      preserving &&
+      state.cachedAt &&
+      !state.forceRefresh &&
+      Date.now() - state.cachedAt < FRESH_SNAPSHOT_MS
+    ) {
+      const probe = await requestSession(tabId, "probe");
+      if (
+        probe.ready &&
+        probe.user === state.account.user &&
+        String(probe.orgId) === String(state.account.orgId)
+      ) {
+        state.tabId = tabId;
+        state.live = true;
+        state.forceRefresh = false;
+        state.needsSignIn = false;
+        await rememberConnection(tabId, element("project").value, {
+          user: state.account.user,
+          orgId: state.account.orgId,
+          targets: state.targets,
+        });
+        try {
+          await persistSnapshot(state.cachedAt);
+        } catch {
+          /* The live session remains usable without the optimization. */
+        }
+        element("reconnect").hidden = true;
+        element("sync-state").textContent = "Auto-sync on";
+        showMessage();
+        render();
+        return true;
+      }
+    }
+    if (!preserving) {
+      setBusy(true);
+      showMessage("Syncing your tests…");
+    } else element("sync-state").textContent = "Updating…";
+    await connectSession(tabId, saved, { preserveCatalog: preserving });
+    return true;
   } catch (error) {
-    // Do not repeatedly retry permission/API errors; the user can retry explicitly.
-    state.autoConnect = false;
-    showMessage("", error.message);
+    if (preserving) showReconnect(error.message);
+    else showMessage("", error.message);
+    return false;
   } finally {
     state.busy = false;
     setBusy(false);
   }
 }
 
+async function reconnect() {
+  if (state.busy) return;
+  await setAutoConnectEnabled(true);
+  state.autoConnect = true;
+  const connected = await tryAutoConnect();
+  if (!connected && state.needsSignIn) await openAmplitude();
+}
+
+element("reconnect").onclick = reconnect;
+
 async function initialize() {
   await initializeTheme();
   state.autoConnect = await isAutoConnectEnabled();
+  if (state.autoConnect) await restoreSnapshot();
   renderTabs(await listAmplitudeTabs());
   setBusy(false);
   if (state.autoConnect) await tryAutoConnect();
@@ -497,10 +696,11 @@ async function initialize() {
 }
 initialize().catch((error) => showMessage("", error.message));
 
-// Poll only while the popup is visible. Never interrupt a variant being edited.
+// Poll only while the panel is visible. Never interrupt a variant being edited.
 async function autoRefresh() {
   if (
     !state.account ||
+    !state.live ||
     state.demo ||
     state.busy ||
     state.editing ||
@@ -514,8 +714,9 @@ async function autoRefresh() {
   try {
     await loadCatalog({ silent: true });
   } catch (error) {
-    element("sync-state").textContent = "Sync paused";
-    showMessage("", `Could not refresh. ${error.message}`);
+    showReconnect(`Could not refresh. ${error.message}`, {
+      forceRefresh: true,
+    });
   } finally {
     state.busy = false;
     setBusy(false);

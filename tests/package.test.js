@@ -14,6 +14,14 @@ import json, subprocess, zipfile
 from pathlib import Path
 manifest=json.loads(Path('manifest.json').read_text())
 version=manifest['version']
+assert f'<span class="beta">{version}</span' in Path('index.html').read_text()
+assert manifest['background']=={'service_worker':'src/background.js','type':'module'}
+assert 'alarms' in manifest['permissions']
+assert 'sidePanel' in manifest['permissions']
+assert manifest['side_panel']=={'default_path':'index.html'}
+assert 'default_popup' not in manifest['action']
+assert int(manifest['minimum_chrome_version']) >= 114
+assert Path(manifest['background']['service_worker']).is_file()
 for store in (False, True):
     subprocess.run(['python3','scripts/package.py']+(['--store'] if store else []),check=True,capture_output=True)
     suffix='-webstore' if store else ''
@@ -24,8 +32,12 @@ for store in (False, True):
         assert all(prefix+p in names for p in ['index.html','style.css',*manifest['icons'].values()])
         assert all(prefix+str(p) in names for p in Path('src').rglob('*.js'))
         assert not any(any(part in n for part in ['node_modules/','tests/','.git','TEST-REPORT','RELEASE-REVIEW','INQUIRY','package-lock','scripts/']) for n in names)
-        if store: assert not any(n.startswith('docs/') or n.endswith('.md') for n in names)
-        else: assert all(prefix+n in names for n in ['README.md','CONTRIBUTING.md'])
+        demo_media=['assets/testperch-side-panel-demo.gif','assets/testperch-side-panel-demo.mp4']
+        if store:
+            assert not any(n.startswith('docs/') or n.endswith('.md') for n in names)
+            assert not any(n in names for n in demo_media)
+        else:
+            assert all(prefix+n in names for n in ['README.md','CONTRIBUTING.md',*demo_media])
 `,
     ],
     { cwd: root },

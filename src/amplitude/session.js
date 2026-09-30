@@ -19,7 +19,12 @@ export async function amplitudeSession(action, args = {}) {
         Object.values(
           window.__activeAppStore?.[0]?.getState()?.entities?.apps || {},
         ).some((p) => /^\d+$/.test(String(p.id)));
-      return { ok: true, ready, signedIn };
+      return {
+        ok: true,
+        ready,
+        signedIn,
+        ...(signedIn ? { user: org.user, orgId: String(org.orgId) } : {}),
+      };
     }
     if (
       !org?.isLoggedIn ||

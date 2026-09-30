@@ -1,23 +1,32 @@
 {
   "manifest_version": 3,
   "name": "TestPerch — Testing for Amplitude Experiment & Feature Flags",
-  "version": "0.0.2.1",
+  "version": "0.0.3",
+  "minimum_chrome_version": "114",
   "description": "Manage Amplitude Experiment testing: join A/B tests & feature flags, switch variants, check custom emails and user/device IDs.",
   "permissions": [
     "scripting",
-    "storage"
+    "storage",
+    "alarms",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://app.amplitude.com/*",
     "https://app.eu.amplitude.com/*"
   ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
   "action": {
     "default_title": "TestPerch — Experiment & flag testing for Amplitude",
-    "default_popup": "index.html",
     "default_icon": {
       "16": "assets/icon-16.png",
       "32": "assets/icon-32.png"
     }
+  },
+  "side_panel": {
+    "default_path": "index.html"
   },
   "icons": {
     "16": "assets/icon-16.png",
