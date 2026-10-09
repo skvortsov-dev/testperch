@@ -485,6 +485,62 @@ test(
 );
 
 test(
+  "full popup: card titles link to the experiment page on the Amplitude origin",
+  options,
+  async (t) => {
+    const p = await popup(t);
+    const link = p.$(".card-title a");
+    assert.equal(link.textContent, "Checkout");
+    assert.equal(
+      link.href,
+      "https://app.amplitude.com/experiment/demo-org/42/config/100",
+    );
+    assert.equal(link.rel, "noopener");
+    assert.equal(link.target, "_blank");
+    const flagLink = p.window.document.querySelectorAll(".card-title a")[1];
+    assert.equal(flagLink.textContent, "Search flag");
+    assert.equal(
+      flagLink.href,
+      "https://app.amplitude.com/experiment/demo-org/42/config/101",
+    );
+  },
+);
+
+test(
+  "side panel: demo cards keep plain-text titles without links",
+  options,
+  async (t) => {
+    const backend = fixture();
+    backend.tabs = [];
+    const p = await popup(t, backend);
+    await p.click("#demo");
+    assert.notEqual(p.$(".card-title"), null);
+    assert.equal(p.$(".card-title a"), null);
+  },
+);
+
+test(
+  "side panel: hostile snapshot urls render as plain text, never as links",
+  options,
+  async (t) => {
+    const backend = fixture();
+    let p = await popup(t, backend);
+    // Poison the stored snapshot the way a compromised channel would.
+    const snapshot = backend.session.catalogSnapshot;
+    snapshot.updatedAt = Date.now();
+    snapshot.catalog[0].url = "https://app.amplitude.com.evil.com/x";
+    snapshot.catalog[1].url = "javascript:alert(1)";
+    backend.waitScan = new Promise(() => {});
+    p = await popup(t, backend);
+    assert.equal(p.$("#dashboard").hidden, false);
+    const titles = p.window.document.querySelectorAll(".card-title");
+    assert.ok(titles.length >= 2);
+    assert.equal(p.$(".card-title a"), null);
+    assert.equal(titles[0].textContent, "Checkout");
+  },
+);
+
+test(
   "full popup: add icon keeps actor included by default; chip removal only changes the view",
   options,
   async (t) => {

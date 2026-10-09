@@ -59,7 +59,7 @@ Use the **exit icon** next to the theme button to disconnect from TestPerch. Thi
 
 ## Updates
 
-**Current release: 0.0.3.** Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). Store installations receive 0.0.3 automatically after Google approves the submitted update. This revision adds the persistent side panel, cached background sync, the redesigned assignment list, and one-click search clearing. Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
+**Current release: 0.0.3.1.** Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). Store installations receive 0.0.3.1 automatically after Google approves the submitted update. This revision links every experiment and flag name in the catalog to its page in Amplitude and removes the version badge from the panel header. Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
 
 Each published release will include an installable **`testperch-v<version>.zip`** and a SHA-256 checksum.
 

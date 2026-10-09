@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3.1 — Experiment links
+
+- Experiment and flag names in the catalog now link to the configuration's page in Amplitude, opening in a new tab. Links are built only from validated parts of the current session and never render for other origins or in demo mode.
+- Remove the version badge from the panel header; the installed version remains visible at chrome://extensions and on the Web Store listing.
+
 ## 0.0.3 — 2026-09-30
 
 - Move the complete TestPerch interface into a persistent, resizable Chrome side panel that stays open across tab switches and page reloads.

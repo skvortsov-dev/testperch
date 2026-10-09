@@ -75,6 +75,41 @@ test("matches exact email and returns no other participants", async () => {
   assert.equal(r.assignments[0].variants[0].name, "Enabled");
   assert.equal(JSON.stringify(r).includes("other@example.com"), false);
 });
+
+test("scan links each item to its experiment page from validated parts", async () => {
+  const { run } = harness(() => ({ data: { flags: [flag()] } }));
+  const r = await run("scan", args);
+  assert.equal(
+    r.catalog[0].url,
+    "https://app.amplitude.com/experiment/example/42/config/100",
+  );
+});
+test("scan omits item urls when the org slug is not a safe path segment", async () => {
+  const { run, org } = harness(() => ({ data: { flags: [flag()] } }));
+  org.orgUrl = "evil/../org";
+  const r = await run("scan", args);
+  assert.equal(r.catalog.length, 1);
+  assert.equal(r.catalog[0].url, undefined);
+});
+
+test("scan omits item urls for dot-only org slugs that would normalize away", async () => {
+  const { run, org } = harness(() => ({ data: { flags: [flag()] } }));
+  org.orgUrl = "..";
+  const r = await run("scan", args);
+  assert.equal(r.catalog[0].url, undefined);
+});
+test("scan reads the org slug once, so a stateful getter cannot swap the url", async () => {
+  const { run, org } = harness(() => ({ data: { flags: [flag()] } }));
+  let reads = 0;
+  Object.defineProperty(org, "orgUrl", {
+    get: () => (reads++ < 2 ? "example" : "../../evil"),
+  });
+  const r = await run("scan", args);
+  assert.equal(
+    r.catalog[0].url,
+    "https://app.amplitude.com/experiment/example/42/config/100",
+  );
+});
 test("removes only self; preserves other IDs and sends no rollout settings", async () => {
   let f = flag(),
     writes = 0;

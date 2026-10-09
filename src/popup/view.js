@@ -103,8 +103,27 @@ export function renderCatalog(state, handlers) {
     const experiment = isExperiment(item);
     card.querySelector(".type-icon").textContent = experiment ? "A/B" : "FLAG";
     const title = card.querySelector(".card-title");
-    title.textContent = item.name;
-    title.title = item.key || item.name;
+    // The catalog is untrusted input: only links back to Amplitude render.
+    const flagUrl =
+      typeof item.url === "string" &&
+      ["https://app.amplitude.com/", "https://app.eu.amplitude.com/"].some(
+        (origin) => item.url.startsWith(origin),
+      )
+        ? item.url
+        : null;
+    if (flagUrl) {
+      const open = document.createElement("a");
+      open.className = "card-title-link";
+      open.textContent = item.name;
+      open.title = `${item.key || item.name} — open in Amplitude`;
+      open.href = flagUrl;
+      open.target = "_blank";
+      open.rel = "noopener";
+      title.replaceChildren(open);
+    } else {
+      title.textContent = item.name;
+      title.title = item.key || item.name;
+    }
     const meta = card.querySelector(".card-meta");
     meta.replaceChildren(
       ...[experiment ? "Experiment" : "Feature flag", ...item.deployments].map(

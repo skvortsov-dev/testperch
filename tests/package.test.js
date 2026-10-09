@@ -14,7 +14,7 @@ import json, subprocess, zipfile
 from pathlib import Path
 manifest=json.loads(Path('manifest.json').read_text())
 version=manifest['version']
-assert f'<span class="beta">{version}</span' in Path('index.html').read_text()
+assert 'class="beta"' not in Path('index.html').read_text()
 assert manifest['background']=={'service_worker':'src/background.js','type':'module'}
 assert 'alarms' in manifest['permissions']
 assert 'sidePanel' in manifest['permissions']

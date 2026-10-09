@@ -171,8 +171,19 @@ export async function amplitudeSession(action, args = {}) {
               name: flag.variants?.find((v) => v.key === key)?.name || key,
             }));
           const availableVariants = variantsOf(flag);
+          // Read untrusted parts exactly once; the page can hide stateful
+          // getters behind org.orgUrl, so validate and interpolate the same
+          // capture. Dot-only segments would normalize to another path.
+          const slug = String(org.orgUrl || "");
+          const flagId = String(flag.id);
           const item = {
-            id: String(flag.id),
+            id: flagId,
+            // Link only from validated parts: allowlisted origin, slug-shaped
+            // org, numeric project and flag id. Anything else means no link.
+            url:
+              /^(?!\.+$)[\w.-]+$/.test(slug) && /^\d+$/.test(flagId)
+                ? `${location.origin}/experiment/${slug}/${project}/config/${flagId}`
+                : undefined,
             name: flag.name || flag.key,
             key: flag.key,
             type: flag.type,
