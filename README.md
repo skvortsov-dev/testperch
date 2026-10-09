@@ -8,7 +8,8 @@ An independent Chrome extension for QA engineers, developers, and product manage
 
 - Connects to your existing Amplitude session without an API key.
 - Shows testing assignments by project for up to 20 selected email/user/device IDs, with or without your own account.
-- Searches existing experiments and feature flags by name or key.
+- Searches existing experiments and feature flags by name or key, and opens any of them on its Amplitude page in one click.
+- Lives in Chrome's side panel: stays open across tab switches, shows the last snapshot instantly, and refreshes in the background.
 - Adds, switches, or removes one selected ID’s assignment at a time, preserving everyone else.
 - Supports custom variants and refreshes while the side panel is open.
 - Includes **Try the demo** with fictional data; changes stay local.
@@ -18,22 +19,6 @@ An independent Chrome extension for QA engineers, developers, and product manage
 https://github.com/user-attachments/assets/87f0036e-9b5d-4473-bc6b-d3cb4d8bdfcf
 
 19 seconds: the side panel, Testing IDs with a device ID, assignments per identity, search with one-click clearing, and both themes. Recorded from the installed extension in **Try the demo** with fictional data.
-
-## What’s new in 0.0.3
-
-- The complete interface now lives in Chrome’s side panel and stays open while you switch tabs or reload the page.
-- Search fields now include a dedicated clear button, so you can reset a filtered experiment or flag list in one click.
-- **Testing IDs** opens as a compact popover above the list. Add up to 20 email, user, or device IDs and independently include or exclude your signed-in account.
-- The last successful assignment snapshot is kept for the browser session. Data refreshes every five minutes in the background and every 30 seconds while the panel is visible.
-- Experiment and flag cards, assignment states, the **Leave** action, and both themes have been redesigned for the resizable panel.
-
-### Fixes from user feedback
-
-- Opening the panel no longer blocks on a complete catalog request. The saved snapshot appears immediately while freshness is checked quietly.
-- TestPerch automatically adopts another open, authorized Amplitude tab. If the session expires, cached assignments remain visible in read-only mode and **Sign in** or **Reconnect** restores the connection.
-- Theme changes render immediately, **How testing works** appears only in demo mode, and side-panel alignment and overlap issues are fixed.
-
-These scenarios are covered by automated tests and were also verified in the installed Chrome side panel.
 
 ## Install
 
@@ -59,7 +44,7 @@ Use the **exit icon** next to the theme button to disconnect from TestPerch. Thi
 
 ## Updates
 
-**Current release: 0.0.3.1.** Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl). Store installations receive 0.0.3.1 automatically after Google approves the submitted update. This revision links every experiment and flag name in the catalog to its page in Amplitude and removes the version badge from the panel header. Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
+Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/testperch/mdnkmboonnachlkkjcogeeiphohfnofl): Store installations receive each approved update automatically, and what changed is always in the [Changelog](CHANGELOG.md). Delivery is not instant, and unpacked installations need to be replaced by the Store version to use Store updates.
 
 Each published release will include an installable **`testperch-v<version>.zip`** and a SHA-256 checksum.
 
