@@ -17,7 +17,7 @@ An independent Chrome extension for QA engineers, developers, and product manage
 
 [![TestPerch 0.0.3 side panel demo](assets/testperch-side-panel-demo.gif)](assets/testperch-side-panel-demo.mp4)
 
-17 seconds: the persistent side panel, Testing IDs, a device ID, experiment and feature-flag search, and both themes. Recorded from the installed extension in **Try the demo** with fictional data. Click the preview for the MP4.
+19 seconds: the side panel, Testing IDs with a device ID, assignments per identity, search with one-click clearing, and both themes. Recorded from the installed extension in **Try the demo** with fictional data. Click the preview for the MP4.
 
 ## What’s new in 0.0.3
 
