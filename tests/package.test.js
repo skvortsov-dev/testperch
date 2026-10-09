@@ -32,12 +32,11 @@ for store in (False, True):
         assert all(prefix+p in names for p in ['index.html','style.css',*manifest['icons'].values()])
         assert all(prefix+str(p) in names for p in Path('src').rglob('*.js'))
         assert not any(any(part in n for part in ['node_modules/','tests/','.git','TEST-REPORT','RELEASE-REVIEW','INQUIRY','package-lock','scripts/']) for n in names)
-        demo_media=['assets/testperch-side-panel-demo.gif','assets/testperch-side-panel-demo.mp4']
+        assert not any('side-panel-demo' in n for n in names)
         if store:
             assert not any(n.startswith('docs/') or n.endswith('.md') for n in names)
-            assert not any(n in names for n in demo_media)
         else:
-            assert all(prefix+n in names for n in ['README.md','CONTRIBUTING.md',*demo_media])
+            assert all(prefix+n in names for n in ['README.md','CONTRIBUTING.md'])
 `,
     ],
     { cwd: root },

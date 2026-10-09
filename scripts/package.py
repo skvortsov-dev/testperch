@@ -28,14 +28,6 @@ if not args.store:
     files += [ROOT / name for name in ('README.md', 'CONTRIBUTING.md', 'PRIVACY.md', 'CHANGELOG.md')]
 for folder in (('src', 'assets') if args.store else ('src', 'assets', 'docs')):
     files += [p for p in (ROOT / folder).rglob('*') if p.is_file() and not p.name.startswith('.')]
-if args.store:
-    # The README demo belongs in the downloadable GitHub archive, while the
-    # Web Store package should contain only files used by the extension.
-    demo_media = {
-        ROOT / 'assets' / 'testperch-side-panel-demo.gif',
-        ROOT / 'assets' / 'testperch-side-panel-demo.mp4',
-    }
-    files = [file for file in files if file not in demo_media]
 for icon in manifest['icons'].values():
     if not (ROOT / icon).is_file():
         parser.error(f'Missing icon: {icon}')
